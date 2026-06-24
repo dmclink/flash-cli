@@ -1,23 +1,50 @@
 package cmd
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
+	"github.com/dmclink/flash-cli/internal/constant"
+	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	_ "modernc.org/sqlite"
 )
 
 var (
 	cfgFile string
+	DB      *sql.DB
 
 	rootCmd = &cobra.Command{
-		Use:   "flash-cli",
+		Use:   constant.APP_NAME,
 		Short: "Flashcard review and management program",
 		Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if os.Getuid() == 0 {
+				fmt.Println("Error: do not run this application as root/sudo.")
+				os.Exit(1)
+			}
+
+			var err error
+			DB, err = database.OpenAndInitDatabase()
+			if err != nil {
+				fmt.Println("Error: Opening and initializing database")
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: run the default command when calling root by itself, likely reviewCmd
 		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if DB != nil {
+				DB.Close()
+			}
+		},
+		Version: "0.1.0",
 	}
 )
 
@@ -31,9 +58,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cobra.yaml)")
 	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
 
-	// TODO: define additional flags here
+	// TODO: define additional global flags here
 }
 
+// TODO: this is boilerplate from the cobra docs, review later if we ever used config files and either delete this block or delete this comment
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
