@@ -15,6 +15,6 @@ var versionCmd = &cobra.Command{
 	Short: "Prints the flash-cli version",
 	Long:  "Prints the flash-cli version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("v0.1.0")
+		fmt.Println("0.1.0")
 	},
 }

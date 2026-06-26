@@ -1,16 +1,34 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
 
+	"github.com/dmclink/flash-cli/internal/args"
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
+
+var modsStartingIdxKey = "modsStartingIdx"
+
+func Execute() error {
+	reorderedArgs, idx, err := args.Reorder(os.Args)
+	if err != nil {
+		fmt.Println(fmt.Errorf("Error: reordering args | %w", err))
+		// TODO: call usage?
+		os.Exit(1)
+	}
+	os.Args = reorderedArgs
+
+	ctx := context.WithValue(context.Background(), modsStartingIdxKey, idx)
+
+	return rootCmd.ExecuteContext(ctx)
+}
 
 var (
 	cfgFile string
@@ -47,10 +65,6 @@ var (
 		Version: "0.1.0",
 	}
 )
-
-func Execute() error {
-	return rootCmd.Execute()
-}
 
 func init() {
 	cobra.OnInitialize(initConfig)
