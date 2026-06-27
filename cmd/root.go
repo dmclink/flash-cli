@@ -15,75 +15,95 @@ import (
 )
 
 func Execute(db *sql.DB) error {
-	parsedArgs, err := parser.ParseArgs(os.Args)
-	if err != nil {
-		fmt.Println(fmt.Errorf("failed to validate and reorder args | %w", err))
-		// TODO: call usage?, if not calling usage, can optionally handle error in main
-		// TODO: also look up if we should handle errors in main for cobra, since the bottom of this function
-		// returns an error, should it be handled? Cobra automatically pushes to stderr anyway do i need to do anything with this?
-		// TODO: use cobra.CheckError(err) here?
-		os.Exit(1)
-	}
-	os.Args = parsedArgs.Args
+	v := viper.New()
 
-	// TODO: remove this after refactoring commands into functions
-	DB = db
-
-	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
-
-	return rootCmd.ExecuteContext(ctx)
-}
-
-var (
-	cfgFile string
-	DB      *sql.DB
-
-	rootCmd = &cobra.Command{
-		Use:   constant.APP_NAME,
-		Short: "Flashcard review and management program",
-		Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: initialize viper config here
-			return nil
-		},
-		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: run the default command when calling root by itself, likely reviewCmd
-		},
-		Version: "0.1.0",
-	}
-)
-
-func init() {
-	cobra.OnInitialize(initConfig)
+	var cfgFile string
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cobra.yaml)")
 	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
 
-	// TODO: define additional global flags here
+	err := initConfig(v, cfgFile)
+	if err != nil {
+		return fmt.Errorf("initializing viper config | %w", err)
+	}
+
+	parsedArgs, err := parser.ParseArgs(os.Args)
+	if err != nil {
+		// TODO: call usage?, if not calling usage, can optionally handle error in main
+		return fmt.Errorf("failed to validate and reorder args | %w", err)
+	}
+	os.Args = parsedArgs.Args
+
+	rootCmd.AddCommand(NewVersionCmd(db, v))
+	rootCmd.AddCommand(NewAddCmd(db, v))
+
+	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
+
+	// TODO: remove error from signature and just call os.Exit(1) instead?
+	return rootCmd.ExecuteContext(ctx)
 }
 
-// TODO: this is boilerplate from the cobra docs, review later if we ever used config files and either delete this block or delete this comment
-func initConfig() {
-	viper.SetDefault("delimiter", "::")
+var rootCmd = &cobra.Command{
+	Use:   constant.APP_NAME,
+	Short: "Flashcard review and management program",
+	Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// TODO: initialize viper config here
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		// TODO: run the default command when calling root by itself, likely reviewCmd
+	},
+	Version: "0.1.0",
+}
 
+// func init() {
+// 	cobra.OnInitialize(initConfig)
+//
+//
+// 	// TODO: define additional global flags here
+// }
+
+// TODO: this is boilerplate from the cobra docs, review later if we ever used config files and either delete this block or delete this comment
+func initConfig(v *viper.Viper, cfgFile string) error {
+	v.SetDefault(constant.VIPER_KEY_DELIMITER, "::")
+
+	var configPath string
 	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		v.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
+
 		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+		if err != nil {
+			return fmt.Errorf("failed to find home directory for os | %w", err)
+		}
 
-		configPath := filepath.Join(home, ".config", constant.APP_NAME)
+		configPath = filepath.Join(home, ".config", constant.APP_NAME)
 
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(configPath)
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath(configPath)
 	}
 
-	viper.AutomaticEnv()
+	v.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	err := v.ReadInConfig()
+	if err == nil {
+		return nil
 	}
+
+	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		if err := os.MkdirAll(configPath, 0o755); err != nil {
+			return fmt.Errorf("failed creating config directory | %w", err)
+		}
+
+		if err := v.SafeWriteConfig(); err != nil {
+			return fmt.Errorf("failed creatign default config | %w", err)
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("failed reading config file | %w", err)
 }

@@ -27,5 +27,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd.Execute(db)
+	err = cmd.Execute(db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: executing command | %v\n", err)
+	}
 }
