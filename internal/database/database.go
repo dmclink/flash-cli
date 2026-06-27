@@ -9,6 +9,7 @@ import (
 	"github.com/dmclink/flash-cli/internal/platform"
 )
 
+// TODO: separate Open and Init into different functions
 func OpenAndInitDatabase() (*sql.DB, error) {
 	path, err := DatabasePath()
 	if err != nil {
@@ -20,6 +21,7 @@ func OpenAndInitDatabase() (*sql.DB, error) {
 		return nil, err
 	}
 
+	// TODO: put this in its own file, maybe along with init
 	schema := `
 	CREATE TABLE IF NOT EXISTS flashcards (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -88,7 +88,7 @@ func Reorder(args []string) ([]string, int, error) {
 
 	err := ValidateFilters(filters)
 	if err != nil {
-		return args, -1, fmt.Errorf("Error: one or more invalid filters: %w", err)
+		return args, -1, fmt.Errorf("one or more invalid filters | %w", err)
 	}
 
 	return newArgs, idx + 1, nil
