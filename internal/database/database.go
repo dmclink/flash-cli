@@ -9,8 +9,8 @@ import (
 	"github.com/dmclink/flash-cli/internal/platform"
 )
 
-// TODO: separate Open and Init into different functions
-func OpenAndInitDatabase() (*sql.DB, error) {
+// Open opens sqlite database at path appropriate for user's operating system
+func Open() (*sql.DB, error) {
 	path, err := DatabasePath()
 	if err != nil {
 		return nil, err
@@ -21,25 +21,18 @@ func OpenAndInitDatabase() (*sql.DB, error) {
 		return nil, err
 	}
 
-	// TODO: put this in its own file, maybe along with init
-	schema := `
-	CREATE TABLE IF NOT EXISTS flashcards (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		uuid BLOB UNIQUE,
-		last_reviewed INTEGER DEFAULT (unixepoch()),
-		front TEXT NOT NULL,
-		back TEXT NOT NULL,
-		created_at INTEGER DEFAULT (unixepoch()),
-		ext_data BLOB
-	);`
+	return db, nil
+}
 
-	_, err = db.Exec(schema)
+// Init executes creation of any tables for the database if they do not exist
+func Init(db *sql.DB) error {
+	_, err := db.Exec(schema)
 	if err != nil {
 		db.Close()
-		return nil, err
+		return err
 	}
 
-	return db, nil
+	return nil
 }
 
 func DatabasePath() (string, error) {

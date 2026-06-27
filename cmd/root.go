@@ -8,14 +8,13 @@ import (
 	"path/filepath"
 
 	"github.com/dmclink/flash-cli/internal/constant"
-	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
 
-func Execute() error {
+func Execute(db *sql.DB) error {
 	parsedArgs, err := parser.ParseArgs(os.Args)
 	if err != nil {
 		fmt.Println(fmt.Errorf("failed to validate and reorder args | %w", err))
@@ -26,6 +25,9 @@ func Execute() error {
 		os.Exit(1)
 	}
 	os.Args = parsedArgs.Args
+
+	// TODO: remove this after refactoring commands into functions
+	DB = db
 
 	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
 
@@ -41,26 +43,11 @@ var (
 		Short: "Flashcard review and management program",
 		Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if os.Getuid() == 0 {
-				return fmt.Errorf("do not run this application as root/sudo.")
-			}
-
-			var err error
-			DB, err = database.OpenAndInitDatabase()
-			if err != nil {
-				return fmt.Errorf("failed to open and initialize database | %w", err)
-			}
-
+			// TODO: initialize viper config here
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: run the default command when calling root by itself, likely reviewCmd
-		},
-		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-			if DB != nil {
-				return DB.Close()
-			}
-			return fmt.Errorf("nil database")
 		},
 		Version: "0.1.0",
 	}
