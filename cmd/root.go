@@ -6,26 +6,26 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dmclink/flash-cli/internal/args"
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/database"
+	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
 
-var modsStartingIdxKey = "modsStartingIdx"
-
 func Execute() error {
-	reorderedArgs, idx, err := args.Reorder(os.Args)
+	parsedArgs, err := parser.ParseArgs(os.Args)
 	if err != nil {
 		fmt.Println(fmt.Errorf("Error: reordering args | %w", err))
-		// TODO: call usage?
+		// TODO: call usage?, if not calling usage, can optionally handle error in main
+		// TODO: also look up if we should handle errors in main for cobra, since the bottom of this function
+		// returns an error, should it be handled? Cobra automatically pushes to stderr anyway do i need to do anything with this?
 		os.Exit(1)
 	}
-	os.Args = reorderedArgs
+	os.Args = parsedArgs.Args
 
-	ctx := context.WithValue(context.Background(), modsStartingIdxKey, idx)
+	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
 
 	return rootCmd.ExecuteContext(ctx)
 }
@@ -40,16 +40,13 @@ var (
 		Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if os.Getuid() == 0 {
-				fmt.Println("Error: do not run this application as root/sudo.")
-				os.Exit(1)
+				return fmt.Errorf("Error: do not run this application as root/sudo.")
 			}
 
 			var err error
 			DB, err = database.OpenAndInitDatabase()
 			if err != nil {
-				fmt.Println("Error: Opening and initializing database")
-				fmt.Println(err)
-				os.Exit(1)
+				return fmt.Errorf("Error: Opening and initializing database | %w", err)
 			}
 
 			return nil
@@ -57,10 +54,11 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: run the default command when calling root by itself, likely reviewCmd
 		},
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 			if DB != nil {
-				DB.Close()
+				return DB.Close()
 			}
+			return fmt.Errorf("nil database")
 		},
 		Version: "0.1.0",
 	}

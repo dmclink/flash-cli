@@ -1,4 +1,4 @@
-package args
+package parser
 
 import (
 	"reflect"
@@ -253,6 +253,95 @@ func TestFindCommand(t *testing.T) {
 			}
 			if got1 != tt.want1 {
 				t.Errorf("FindCommand() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestParseArgs(t *testing.T) {
+	type args struct {
+		args []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    ParsedArgs
+		wantErr bool
+	}{
+		{
+			"no command",
+			args{[]string{"flash-cli"}},
+			ParsedArgs{
+				constant.DEFAULT_COMMAND,
+				[]string{},
+				[]string{},
+				[]string{"flash-cli", constant.DEFAULT_COMMAND},
+			},
+			false,
+		},
+		{
+			"only command",
+			args{[]string{"flash-cli", "summary"}},
+			ParsedArgs{
+				"summary",
+				[]string{},
+				[]string{},
+				[]string{"flash-cli", "summary"},
+			},
+			false,
+		},
+		{
+			"command with filters",
+			args{[]string{"flash-cli", "1-20", "25", "group:foo", "review"}},
+			ParsedArgs{
+				"review",
+				[]string{"1-20", "25", "group:foo"},
+				[]string{},
+				[]string{"flash-cli", "review", "1-20", "25", "group:foo"},
+			},
+			false,
+		},
+		{
+			"command with mods",
+			args{[]string{"flash-cli", "add", "flashcard", "front::and", "back"}},
+			ParsedArgs{
+				"add",
+				[]string{},
+				[]string{"flashcard", "front::and", "back"},
+				[]string{"flash-cli", "add", "flashcard", "front::and", "back"},
+			},
+			false,
+		},
+		{
+			"command with filters and mods",
+			args{[]string{"flash-cli", "group:foo", "group:bar", "add", "flashcard", "front::and", "back"}},
+			ParsedArgs{
+				"add",
+				[]string{"group:foo", "group:bar"},
+				[]string{"flashcard", "front::and", "back"},
+				[]string{"flash-cli", "add", "group:foo", "group:bar", "flashcard", "front::and", "back"},
+			},
+			false,
+		},
+		{
+			"malformed filters",
+			args{[]string{"flash-cli", "group:foo", "14a", "group:bar", "add", "flashcard", "front::and", "back"}},
+			ParsedArgs{},
+			true,
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseArgs(tt.args.args)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ParseArgs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseArgs() = %v, want %v", got, tt.want)
 			}
 		})
 	}

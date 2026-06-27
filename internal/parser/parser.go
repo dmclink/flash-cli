@@ -1,4 +1,4 @@
-package args
+package parser
 
 import (
 	"fmt"
@@ -17,6 +17,36 @@ import (
 // 	ID_RANGE
 // 	MOD
 // )
+
+// ParsedArgs are the command line arguments separated into their respective types.
+type ParsedArgs struct {
+	Command string
+	Filters []string
+	Mods    []string
+	// Reordered command line arguments in format <program> <command> <filters> <mods>
+	Args []string
+}
+
+// ParseArgs returns a struct for the parsed command line arguments. Returns an error if filters are malformed.
+// Does not check if filters or mods are relevant to the individual subcommands requirements'
+// Takes valid command line arguments in the form <program> <filters> <command> <mods> and
+// separates them into a field in their respective types. Also returns args reordered into
+// Cobra cli expected format <program> <command> <args>
+func ParseArgs(args []string) (ParsedArgs, error) {
+	reorderedArgs, modsStartIdx, err := Reorder(args)
+	if err != nil {
+		return ParsedArgs{}, err
+	}
+
+	result := ParsedArgs{
+		Command: reorderedArgs[1],
+		Filters: reorderedArgs[2:modsStartIdx],
+		Mods:    reorderedArgs[modsStartIdx:],
+		Args:    reorderedArgs,
+	}
+
+	return result, nil
+}
 
 // Reorder takes a slice of command line arguments (ie. os.Args) and reorders and returns them
 // Input in the original format of <program> <filters> <command> <mods> to
