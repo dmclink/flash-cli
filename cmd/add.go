@@ -38,9 +38,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			}
 
 			mods := strings.Join(parsedArgs.Mods, " ")
-			fmt.Printf("mods inside run after join: '%s'\n", mods)
 			delim := v.GetString(constant.VIPER_KEY_DELIMITER)
-			fmt.Printf("delim: '%s'\n", delim)
 			splitMods := strings.SplitN(mods, delim, 2)
 			if len(splitMods) < 2 {
 				return fmt.Errorf("something went wrong, delimiter doesn't exist but should have been verified in PreRun")
@@ -53,6 +51,9 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// TODO: add some statement here to say what groups it was added after groups implemented
+			fmt.Println("Added 1 new flashcard")
 
 			return nil
 		},
