@@ -61,14 +61,6 @@ func NewRootCmd(db *sql.DB, v *viper.Viper, cfgFile *string) *cobra.Command {
 	}
 }
 
-// func init() {
-// 	cobra.OnInitialize(initConfig)
-//
-//
-// 	// TODO: define additional global flags here
-// }
-
-// TODO: this is boilerplate from the cobra docs, review later if we ever used config files and either delete this block or delete this comment
 func initConfig(v *viper.Viper, cfgFile *string) error {
 	v.SetDefault(constant.VIPER_KEY_DELIMITER, "::")
 
@@ -76,9 +68,14 @@ func initConfig(v *viper.Viper, cfgFile *string) error {
 	configName := "config"
 	configType := "yaml"
 	if *cfgFile != "" {
+		// splitting up the filepath instead of using v.SetConfigFile so it follows
+		// the same branching and error handling when the file doesn't exist
 		configPath = filepath.Dir(*cfgFile)
 		configName = strings.TrimSuffix(filepath.Base(*cfgFile), filepath.Ext(*cfgFile))
-		configType = strings.TrimPrefix(filepath.Ext(*cfgFile), ".")
+		ext := strings.TrimPrefix(filepath.Ext(*cfgFile), ".")
+		if ext != "" {
+			configType = ext
+		}
 	} else {
 		home, err := os.UserHomeDir()
 		if err != nil {
