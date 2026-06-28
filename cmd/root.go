@@ -35,6 +35,7 @@ func Execute(db *sql.DB) error {
 
 	rootCmd.AddCommand(NewVersionCmd(db, v))
 	rootCmd.AddCommand(NewAddCmd(db, v))
+	rootCmd.AddCommand(NewReviewCmd(db, v))
 
 	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
 

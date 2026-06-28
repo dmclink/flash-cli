@@ -1,0 +1,13 @@
+package database
+
+import "encoding/json"
+
+type Flashcard struct {
+	ID         int              `db:"id"`
+	UUID       string           `db:"uuid"`
+	LastReview int              `db:"last_review"`
+	Front      string           `db:"front"`
+	Back       string           `db:"back"`
+	CreatedAt  string           `db:"created_at"`
+	ExtData    *json.RawMessage `db:"ext_data"`
+}
