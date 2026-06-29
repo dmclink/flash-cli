@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dmclink/flash-cli/internal/database"
+	"github.com/dmclink/flash-cli/internal/reviewer"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,10 +25,14 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("getting flashcards from db | %w", err)
 			}
-			// FIXME: delete this plcaeholder implementation
-			for _, card := range cards {
-				fmt.Println(card)
+
+			err = reviewer.Review(cards)
+			if err != nil {
+				return fmt.Errorf("reviewing cards | %w", err)
 			}
+			// for _, card := range cards {
+			// 	fmt.Println(card)
+			// }
 			return nil
 		},
 	}

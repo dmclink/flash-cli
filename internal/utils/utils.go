@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/parser"
@@ -15,4 +17,11 @@ func GetParsedArgs(cmd *cobra.Command) (parser.ParsedArgs, error) {
 	}
 
 	return parsedArgs, nil
+}
+
+// TODO: only works for linux terminals, future support for other OS by saving their clear func in a map and lookup os
+func ClearScreen() error {
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }
