@@ -2,7 +2,9 @@ package constant
 
 const (
 	APP_NAME                  = "flash-cli"
-	DATABASE_FLASHCARDS_TABLE = "flashcards"
+	DATABASE_TABLE_FLASHCARDS = "flashcards"
+	DATABASE_TABLE_TAGS       = "tags"
+	DATABASE_TABLE_GROUPS     = "groups"
 )
 
 const DEFAULT_COMMAND = "review"

@@ -11,7 +11,7 @@ import (
 func AddFlashcard(db *sql.DB, front, back string) error {
 	uuid := uuid.New().String()
 	// TODO: need to add external data after that is implemented
-	query := fmt.Sprintf(`INSERT INTO %s (uuid, front, back) VALUES (?, ?, ?)`, constant.DATABASE_FLASHCARDS_TABLE)
+	query := fmt.Sprintf(`INSERT INTO %s (uuid, front, back) VALUES (?, ?, ?)`, constant.DATABASE_TABLE_FLASHCARDS)
 
 	_, err := db.Exec(query, uuid, front, back)
 	if err != nil {
@@ -24,7 +24,7 @@ func AddFlashcard(db *sql.DB, front, back string) error {
 func GetAllFlashcards(db *sql.DB) ([]Flashcard, error) {
 	query := fmt.Sprintf(`
 		SELECT id, uuid, last_review, front, back, created_at, ext_data FROM %s;
-	`, constant.DATABASE_FLASHCARDS_TABLE)
+	`, constant.DATABASE_TABLE_FLASHCARDS)
 
 	rows, err := db.Query(query)
 	if err != nil {
