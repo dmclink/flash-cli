@@ -10,10 +10,9 @@ import (
 
 func AddFlashcard(db *sql.DB, front, back string) error {
 	uuid := uuid.New().String()
-	// TODO: need to add external data after that is implemented
-	query := fmt.Sprintf(`INSERT INTO %s (uuid, front, back) VALUES (?, ?, ?)`, constant.DATABASE_TABLE_FLASHCARDS)
+	query := fmt.Sprintf(`INSERT INTO %s (uuid, front, back, ext_data) VALUES (?, ?, ?, ?)`, constant.DATABASE_TABLE_FLASHCARDS)
 
-	_, err := db.Exec(query, uuid, front, back)
+	_, err := db.Exec(query, uuid, front, back, `{}`)
 	if err != nil {
 		return fmt.Errorf("adding card to db | %w", err)
 	}
