@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"github.com/dmclink/flash-cli/internal/constant"
-	"github.com/google/uuid"
+	"github.com/dmclink/flash-cli/internal/utils"
+	"github.com/spf13/cobra"
 )
 
 //TODO: implement filter type check and assignment for clarity on code branching for validation
@@ -25,6 +26,18 @@ type ParsedArgs struct {
 	Mods    []string
 	// Reordered command line arguments in format <program> <command> <filters> <mods>
 	Args []string
+}
+
+// ExtractParsedArgs extracts the ParsedArgs struct from the cmd's context
+// Only returns error on failing to cast the contents of the context into the ParsedArgs struct
+// which should not occur if added into context correctly
+func ExtractParsedArgs(cmd *cobra.Command) (ParsedArgs, error) {
+	parsedArgs, ok := cmd.Context().Value(constant.PARSED_ARGS_KEY).(ParsedArgs)
+	if !ok {
+		return ParsedArgs{}, fmt.Errorf("failed to cast ParsedArgs")
+	}
+
+	return parsedArgs, nil
 }
 
 // ParseArgs returns a struct for the parsed command line arguments. Returns an error if filters are malformed.
@@ -96,7 +109,7 @@ func Reorder(args []string) ([]string, int, error) {
 
 // ValidateFilters returns an error on the first invalid filter found
 // Empty filters slice is considered valid
-// ASSUMES: all filters passed the IsFilter() function check
+// Preconditions: all filters passed the IsFilter() function check
 func ValidateFilters(filters []string) error {
 	for _, filter := range filters {
 		err := ValidateFilter(filter)
@@ -139,7 +152,7 @@ func IsFilter(s string) bool {
 		return true
 	}
 
-	if err := uuid.Validate(s); err == nil {
+	if utils.IsValidUUID(s) {
 		return true
 	}
 
@@ -147,18 +160,19 @@ func IsFilter(s string) bool {
 }
 
 // ValidateFilter returns an error if filters passed to this function are invalid
-// ASSUMES: s passed the IsFilter() function check
+// Preconditions: s passed the IsFilter() function check
 func ValidateFilter(s string) error {
-	// catch uuids before assuming filters starting with a digit are an id filter
-	if err := uuid.Validate(s); err == nil {
-		return nil
-	}
-
 	if s == "+" || s == "-" {
 		return fmt.Errorf("Invalid filter: needs text after +/- modifier")
 	}
 
+	// catch uuids before assuming filters starting with a digit are an id filter
+	if utils.IsValidUUID(s) {
+		return nil
+	}
+
 	// starts with digit, must be an integer, a range of integers, or a comma separated list of either
+	// tries to cast all individual digit components into an int and throws error if any fail
 	if s[0] >= '0' && s[0] <= '9' {
 		for idFilterAndRanges := range strings.SplitSeq(s, ",") {
 			// fmt.Println(idFilterAndRanges)
@@ -177,7 +191,7 @@ func ValidateFilter(s string) error {
 
 // CommandIdx finds the index of the command in a slice of args.
 // If no commands are found (all args are filters), then -1 is returned.
-// ASSUMES: args is a full command line input from os.Args, including program name `flash-cli` at index 0
+// Preconditions: args is a full command line input from os.Args, including program name `flash-cli` at index 0
 func CommandIdx(args []string) int {
 	// skip program name at index 0
 	for i := 1; i < len(args); i++ {
@@ -192,7 +206,7 @@ func CommandIdx(args []string) int {
 
 // FindCommand returns the command and its index in a slice of args
 // Returns empty string and -1 if no command is found
-// ASSUMES: args is a full command line input from os.Args, including program name `flash-cli` at index 0
+// Preconditions: args is a full command line input from os.Args, including program name `flash-cli` at index 0
 func FindCommand(args []string) (string, int) {
 	idx := CommandIdx(args)
 	if idx == -1 {

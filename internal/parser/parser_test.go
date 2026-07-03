@@ -1,11 +1,12 @@
 package parser
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/dmclink/flash-cli/internal/constant"
-	"github.com/google/uuid"
+	"github.com/spf13/cobra"
 )
 
 func TestIsFilter(t *testing.T) {
@@ -44,7 +45,6 @@ func TestIsFilter(t *testing.T) {
 		{"Invalid UUID length starts with letter", args{"b25ea494-4ef4-4208-a9b-023207abb27"}, false},
 		{"Invalid UUID character starts with letter", args{"b25xz494-4yf4-4208-a9b8-023207abb2c7"}, false},
 	}
-	t.Log(uuid.Validate("525xz494-4yf4-4208-a9b8-023207abb2c7"))
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsFilter(tt.args.s); got != tt.want {
@@ -55,7 +55,6 @@ func TestIsFilter(t *testing.T) {
 }
 
 func TestValidateFilter(t *testing.T) {
-	t.Log(ValidateFilter("foo"))
 	type args struct {
 		s string
 	}
@@ -342,6 +341,36 @@ func TestParseArgs(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseArgs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractParsedArgs(t *testing.T) {
+	type args struct {
+		cmd *cobra.Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    ParsedArgs
+		wantErr bool
+	}{
+		{"valid context", args{&cobra.Command{}}, ParsedArgs{"review", []string{"1,6", "group:foo", "foo:bar", "+done"}, []string{"mode:reverse"}, []string{"review", "1,6", "group:foo", "foo:bar", "+done", "mode:reverse"}}, false},
+	}
+	for _, tt := range tests {
+		ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, tt.want)
+		tt.args.cmd.SetContext(ctx)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ExtractParsedArgs(tt.args.cmd)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ExtractParsedArgs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ExtractParsedArgs() = %v, want %v", got, tt.want)
 			}
 		})
 	}

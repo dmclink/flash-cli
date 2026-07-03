@@ -7,7 +7,7 @@ import (
 
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/database"
-	"github.com/dmclink/flash-cli/internal/utils"
+	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,7 +18,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 		Short: "Add new flashcard",
 		Long:  "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			parsedArgs, err := utils.GetParsedArgs(cmd)
+			parsedArgs, err := parser.ExtractParsedArgs(cmd)
 			if err != nil {
 				return err
 			}
@@ -32,7 +32,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			parsedArgs, err := utils.GetParsedArgs(cmd)
+			parsedArgs, err := parser.ExtractParsedArgs(cmd)
 			if err != nil {
 				return err
 			}
