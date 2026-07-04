@@ -12,7 +12,7 @@ import (
 
 func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "review [group|id filters]... [reviewing style mods]...",
+		Use:   "review",
 		Short: "Review flashcards",
 		// TODO: change these comments about mods, filters, and config after those are implemented
 		Long: "Review flashcards in order by set by mods or defaults ordered by last reviewed, oldest first. Shows one flashcard at a time. Can be filtered by groups or ID ranges. Settings can be changed with config",

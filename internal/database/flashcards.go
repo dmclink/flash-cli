@@ -8,10 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func AddFlashcard(db *sql.DB, front, back string) error {
+// TODO: add comments and add custom
+func AddFlashcard(db *sql.DB, front, back string, groups, tags []string) error {
 	uuid := uuid.New().String()
 	query := fmt.Sprintf(`INSERT INTO %s (uuid, front, back, ext_data) VALUES (?, ?, ?, ?)`, constant.DATABASE_TABLE_FLASHCARDS)
 
+	// TODO: add groups and tags and plugin data to args
+
+	// TODO: don't just pass an empty {} here if plugin data is included
 	_, err := db.Exec(query, uuid, front, back, `{}`)
 	if err != nil {
 		return fmt.Errorf("adding card to db | %w", err)

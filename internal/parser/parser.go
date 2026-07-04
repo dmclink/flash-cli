@@ -30,6 +30,33 @@ type ParsedArgs struct {
 	// before parsing/reordering. Preserved mostly for debugging
 	// since os.Args is overwritten after reordering
 	OriginalInput string
+
+	parsedFilters *[]Filter
+}
+
+// GetGroups returns all GROUP type filters with their "group:" prefix stripped
+func (args ParsedArgs) GetGroups() []string {
+	args.parseFilters()
+	return GetGroups(*args.parsedFilters)
+}
+
+// GetTags returns all TAG type filters
+func (args ParsedArgs) GetTags() []string {
+	args.parseFilters()
+	return GetTags(*args.parsedFilters)
+}
+
+// parseFilters is just a wrapper func for ParseFilters to apply its result
+// to the private field parsedFilters. Does nothing if parsedFilters is not nil
+// so it is safe to call multiple times.
+// Must be called before accessing that field to ensure it is populated
+func (args *ParsedArgs) parseFilters() {
+	if args.parsedFilters != nil {
+		return
+	}
+
+	result := ParseFilters(*args)
+	args.parsedFilters = &result
 }
 
 // Args outputs the cobra CLI friendly reordered arguments in order of

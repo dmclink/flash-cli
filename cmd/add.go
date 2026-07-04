@@ -14,9 +14,10 @@ import (
 
 func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "add [mods]",
+		Use:   "add",
 		Short: "Add new flashcard",
-		Long:  "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
+		// TODO: do i put the usage here? explain which filters work ie. IDs and UUIDS are not available
+		Long: "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			parsedArgs, err := parser.ExtractParsedArgs(cmd)
 			if err != nil {
@@ -47,7 +48,13 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			front := splitMods[0]
 			back := splitMods[1]
 
-			err = database.AddFlashcard(db, front, back)
+			groups := parsedArgs.GetGroups()
+			tags := parsedArgs.GetTags()
+
+			// TODO: extract groups and tags and plugin data from filters
+			// and pass them to AddFlashcard
+
+			err = database.AddFlashcard(db, front, back, groups, tags)
 			if err != nil {
 				return err
 			}

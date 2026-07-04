@@ -22,14 +22,21 @@ const (
 // Filter is a single filter (no compounds) which hold the string and the filter type
 // Values stored in Type are one of constants ID|RANGE|UUID|TAG|GROUP|CUSTOM
 type Filter struct {
-	f    string
+	// f is the raw filter string
+	f string
+	// Type is an iota enum one of ID|RANGE|UUID|TAG|GROUP|CUSTOM that represents the filter's type
 	Type FilterType
+	// Range is an optional field that exists for all RANGE filter types otherwise is nil
+	// It holds the conversion of the raw filter type into integers
+	Range *Range
 }
 
 func (f Filter) String() string {
 	return f.f
 }
 
+// Range is a filter type that is an inclusive range of IDs.
+// Low will always be the smaller of the two numbers
 type Range struct {
 	Low  int
 	High int
@@ -63,6 +70,14 @@ func NewRange(f RawFilter) Range {
 	return Range{lo, hi}
 }
 
+// ParseFilters takes a ParsedArgs struct and extracts its filters field. It then separates all
+// compound filters into a set of equivalent single filters with their respective filter types assigned.
+// ID range filters (ie. "5-9") get additional parsing into a struct with their integer values
+//
+// NOTE: Original order of filters is not preserved
+//
+// Preconditions: Assumes all filters in args passed validation check by parser.ValidateFilter()
+// regardless of type.
 func ParseFilters(args ParsedArgs) []Filter {
 	// cast all raw filter strings to RawFilter type to provide parsing methods
 	rawFilters := make([]RawFilter, 0, len(args.Filters))
@@ -105,7 +120,36 @@ func ParseFilters(args ParsedArgs) []Filter {
 
 	result := make([]Filter, 0, len(singleRawFilters))
 	for _, f := range singleRawFilters {
-		result = append(result, Filter{f.String(), f.getType()})
+		if f.getType() == RANGE {
+			r := NewRange(f)
+			result = append(result, Filter{f.String(), f.getType(), &r})
+		} else {
+			result = append(result, Filter{f.String(), f.getType(), nil})
+		}
+	}
+
+	return result
+}
+
+// GetGroups returns all GROUP type elements in filters and strips their "group:" prefixes
+func GetGroups(filters []Filter) []string {
+	result := make([]string, 0, len(filters))
+	for _, f := range filters {
+		if f.Type == GROUP {
+			result = append(result, strings.TrimPrefix(f.String(), "group:"))
+		}
+	}
+
+	return result
+}
+
+// GetTags returns all TAG type elements in filters
+func GetTags(filters []Filter) []string {
+	result := make([]string, 0, len(filters))
+	for _, f := range filters {
+		if f.Type == TAG {
+			result = append(result, f.String())
+		}
 	}
 
 	return result
