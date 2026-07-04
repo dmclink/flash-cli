@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,13 +20,22 @@ import (
 // 	MOD
 // )
 
-// ParsedArgs are the command line arguments separated into their respective types.
+// ParsedArgs are the command line arguments separated into categories split at parsed command
+// TODO: where do flags end up? are they lost in my parsing? do they get counted as filters since they start with a '-'?
 type ParsedArgs struct {
 	Command string
 	Filters []string
 	Mods    []string
-	// Reordered command line arguments in format <program> <command> <filters> <mods>
-	Args []string
+	// OriginalInput is the original command line input from os.Args
+	// before parsing/reordering. Preserved mostly for debugging
+	// since os.Args is overwritten after reordering
+	OriginalInput string
+}
+
+// Args outputs the cobra CLI friendly reordered arguments in order of
+// <program> <command> <filters> <mods>
+func (args ParsedArgs) Args(binaryName string) []string {
+	return slices.Concat([]string{binaryName, args.Command}, args.Filters, args.Mods)
 }
 
 // ExtractParsedArgs extracts the ParsedArgs struct from the cmd's context
@@ -46,22 +56,22 @@ func ExtractParsedArgs(cmd *cobra.Command) (ParsedArgs, error) {
 // separates them into a field in their respective types. Also returns args reordered into
 // Cobra cli expected format <program> <command> <args>
 func ParseArgs(args []string) (ParsedArgs, error) {
-	reorderedArgs, modsStartIdx, err := Reorder(args)
+	reorderedArgs, modsStartIdx, err := reorder(args)
 	if err != nil {
 		return ParsedArgs{}, err
 	}
 
 	result := ParsedArgs{
-		Command: reorderedArgs[1],
-		Filters: reorderedArgs[2:modsStartIdx],
-		Mods:    reorderedArgs[modsStartIdx:],
-		Args:    reorderedArgs,
+		Command:       reorderedArgs[1],
+		Filters:       reorderedArgs[2:modsStartIdx],
+		Mods:          reorderedArgs[modsStartIdx:],
+		OriginalInput: strings.Join(args, " "),
 	}
 
 	return result, nil
 }
 
-// Reorder takes a slice of command line arguments (ie. os.Args) and reorders and returns them
+// reorder takes a slice of command line arguments (ie. os.Args) and reorders and returns them
 // Input in the original format of <program> <filters> <command> <mods> to
 // match Cobra CLIs expected format <program> <command> <args>.
 //
@@ -73,12 +83,12 @@ func ParseArgs(args []string) (ParsedArgs, error) {
 // denoting all arguments as filters
 //
 // Returns an error if any filters are malformed. On errors, returns args without reordering and index -1
-func Reorder(args []string) ([]string, int, error) {
+func reorder(args []string) ([]string, int, error) {
 	cmd, idx := FindCommand(args)
 	if idx == -1 {
 		// no command found:
 		// inject default command after filters as if user had entered it in the expected position
-		return Reorder(append(append([]string{args[0]}, args[1:]...), constant.DEFAULT_COMMAND))
+		return reorder(append(append([]string{args[0]}, args[1:]...), constant.DEFAULT_COMMAND))
 	}
 
 	if idx == 1 {

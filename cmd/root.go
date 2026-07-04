@@ -31,7 +31,7 @@ func Execute(db *sql.DB) error {
 		rootCmd.Usage()
 		return fmt.Errorf("failed to validate and reorder args | %w", err)
 	}
-	os.Args = parsedArgs.Args
+	os.Args = parsedArgs.Args(os.Args[0])
 
 	rootCmd.AddCommand(NewVersionCmd(db, v))
 	rootCmd.AddCommand(NewAddCmd(db, v))

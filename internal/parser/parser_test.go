@@ -162,18 +162,18 @@ func TestReorder(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := Reorder(tt.args.args)
+			got, got1, err := reorder(tt.args.args)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("Reorder() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("reorder() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.wantErr {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Reorder() got = %v, want %v", got, tt.want)
+				t.Errorf("reorder() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("Reorder() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("reorder() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -274,7 +274,7 @@ func TestParseArgs(t *testing.T) {
 				constant.DEFAULT_COMMAND,
 				[]string{},
 				[]string{},
-				[]string{"flash-cli", constant.DEFAULT_COMMAND},
+				"flash-cli",
 			},
 			false,
 		},
@@ -285,7 +285,7 @@ func TestParseArgs(t *testing.T) {
 				"summary",
 				[]string{},
 				[]string{},
-				[]string{"flash-cli", "summary"},
+				"flash-cli summary",
 			},
 			false,
 		},
@@ -296,7 +296,7 @@ func TestParseArgs(t *testing.T) {
 				"review",
 				[]string{"1-20", "25", "group:foo"},
 				[]string{},
-				[]string{"flash-cli", "review", "1-20", "25", "group:foo"},
+				"flash-cli 1-20 25 group:foo review",
 			},
 			false,
 		},
@@ -307,7 +307,7 @@ func TestParseArgs(t *testing.T) {
 				"add",
 				[]string{},
 				[]string{"flashcard", "front::and", "back"},
-				[]string{"flash-cli", "add", "flashcard", "front::and", "back"},
+				"flash-cli add flashcard front::and back",
 			},
 			false,
 		},
@@ -318,7 +318,7 @@ func TestParseArgs(t *testing.T) {
 				"add",
 				[]string{"group:foo", "group:bar"},
 				[]string{"flashcard", "front::and", "back"},
-				[]string{"flash-cli", "add", "group:foo", "group:bar", "flashcard", "front::and", "back"},
+				"flash-cli group:foo group:bar add flashcard front::and back",
 			},
 			false,
 		},
@@ -328,7 +328,6 @@ func TestParseArgs(t *testing.T) {
 			ParsedArgs{},
 			true,
 		},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -356,7 +355,17 @@ func TestExtractParsedArgs(t *testing.T) {
 		want    ParsedArgs
 		wantErr bool
 	}{
-		{"valid context", args{&cobra.Command{}}, ParsedArgs{"review", []string{"1,6", "group:foo", "foo:bar", "+done"}, []string{"mode:reverse"}, []string{"review", "1,6", "group:foo", "foo:bar", "+done", "mode:reverse"}}, false},
+		{
+			"valid context",
+			args{&cobra.Command{}},
+			ParsedArgs{
+				Command:       "review",
+				Filters:       []string{"1,6", "group:foo", "foo:bar", "+done"},
+				Mods:          []string{"mode:reverse"},
+				OriginalInput: "1,6 group:foo foo:bar +done review mode:reverse",
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, tt.want)
@@ -371,6 +380,68 @@ func TestExtractParsedArgs(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ExtractParsedArgs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParsedArgs_Args(t *testing.T) {
+	type args struct {
+		binaryName string
+	}
+	type fields struct {
+		Command       string
+		Filters       []string
+		Mods          []string
+		OriginalInput string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		fields fields
+		want   []string
+	}{
+		{
+			"no command",
+			args{"flash-cli"},
+			fields{Command: "review", Mods: []string{}, Filters: []string{}, OriginalInput: "flash-cli"},
+			[]string{"flash-cli", "review"},
+		},
+		{
+			"only command",
+			args{"flash-cli"},
+			fields{Command: "review", Mods: []string{}, Filters: []string{}, OriginalInput: "flash-cli review"},
+			[]string{"flash-cli", "review"},
+		},
+		{
+			"with mods",
+			args{"flash-cli"},
+			fields{Command: "add", Mods: []string{"some", "card::and", "back"}, Filters: []string{}, OriginalInput: "flash-cli add some card::and back"},
+			[]string{"flash-cli", "add", "some", "card::and", "back"},
+		},
+		{
+			"with filters and mods",
+			args{"flash-cli"},
+			fields{Command: "add", Mods: []string{"some", "card::and", "back"}, Filters: []string{"group:foo"}, OriginalInput: "flash-cli group:foo add some card::and back"},
+			[]string{"flash-cli", "add", "group:foo", "some", "card::and", "back"},
+		},
+		{
+			"with filters",
+			args{"flash-cli"},
+			fields{Command: "review", Mods: []string{}, Filters: []string{"group:foo"}, OriginalInput: "flash-cli group:foo review"},
+			[]string{"flash-cli", "review", "group:foo"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := ParsedArgs{
+				Command:       tt.fields.Command,
+				Filters:       tt.fields.Filters,
+				Mods:          tt.fields.Mods,
+				OriginalInput: tt.fields.OriginalInput,
+			}
+			if got := args.Args(tt.args.binaryName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParsedArgs.Args() = %v, want %v", got, tt.want)
 			}
 		})
 	}
