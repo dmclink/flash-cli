@@ -51,8 +51,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			groups := parsedArgs.GetGroups()
 			tags := parsedArgs.GetTags()
 
-			// TODO: extract groups and tags and plugin data from filters
-			// and pass them to AddFlashcard
+			// TODO: extract plugin data from filters and pass them to AddFlashcard
 
 			err = database.AddFlashcard(db, front, back, groups, tags)
 			if err != nil {
