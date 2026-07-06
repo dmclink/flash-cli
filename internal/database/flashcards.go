@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: add comments and add custom
-// TODO: add  plugin ext_data to args
+// TODO: add doc comments
+// TODO: add  plugin ext_data to args and to database exec
 func AddFlashcard(db *sql.DB, front, back string, groups, tags []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

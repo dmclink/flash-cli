@@ -36,6 +36,7 @@ func TestIsFilter(t *testing.T) {
 		{"Command ending in number", args{"report3"}, false},
 		{"Contains +", args{"foo+bar"}, false},
 		{"Contains -", args{"flash-cli"}, false},
+		{"standard flag starting with --", args{"--help"}, false},
 		{"Valid UUID starts with number", args{"525ea494-4ef4-4208-a9b8-023207abb2c7"}, true},
 		{"Valid UUID starts with letter", args{"b25ea494-4ef4-4208-a9b8-023207abb2c7"}, true},
 		// resolves to true because it starts with a number but will fail the ValidateFilter() check

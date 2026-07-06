@@ -171,9 +171,7 @@ func IsFilter(s string) bool {
 		return false
 	}
 
-	// TODO: need to check if contains delimiter, need to implement delimiter from config first
-
-	if strings.HasPrefix(s, "-") {
+	if strings.HasPrefix(s, "-") && !strings.HasPrefix(s, "--") {
 		return true
 	}
 
@@ -197,7 +195,14 @@ func IsFilter(s string) bool {
 }
 
 // ValidateFilter returns an error if filters passed to this function are invalid
+//
 // Preconditions: s passed the IsFilter() function check
+// Passing IsFilter() ensures one of these conditions:
+//   - s starts with "-" but not "--" ie. "-foo"
+//   - s starts with "+" ie. "+foo"
+//   - s contains ":" ie. "group:foo" "foo:bar" ":"
+//   - s starts with a digit "[0..9]" ie. "1,5,10" "14a"
+//   - s is a valid UUID
 func ValidateFilter(s string) error {
 	if s == "+" || s == "-" {
 		return fmt.Errorf("Invalid filter: needs text after +/- modifier")

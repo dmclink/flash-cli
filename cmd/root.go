@@ -45,9 +45,10 @@ func Execute(db *sql.DB) error {
 
 func NewRootCmd(db *sql.DB, v *viper.Viper, cfgFile *string) *cobra.Command {
 	return &cobra.Command{
-		Use:   constant.APP_NAME,
-		Short: "Flashcard review and management program",
-		Long:  "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
+		Use:                constant.APP_NAME,
+		Short:              "Flashcard review and management program",
+		Long:               "A CLI program to review and manage flashcards backed by an SQLite database. Strives for simplicity and ease of use to add and review. Extensible via plugins.",
+		DisableFlagParsing: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			err := initConfig(v, cfgFile)
 			if err != nil {
@@ -57,6 +58,9 @@ func NewRootCmd(db *sql.DB, v *viper.Viper, cfgFile *string) *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: run the default command when calling root by itself, likely reviewCmd
+			// currently the default review command is injected in Execute while parsing args
+			// if nothing else is there so i guess no code is required here, can still add it or print an error
+			// verify if still need Run so that persistentPreRun is called by cobra?
 		},
 		Version: "0.1.0",
 	}

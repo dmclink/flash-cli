@@ -14,8 +14,9 @@ import (
 
 func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "add",
-		Short: "Add new flashcard",
+		Use:                "add",
+		Short:              "Add new flashcard",
+		DisableFlagParsing: true,
 		// TODO: do i put the usage here? explain which filters work ie. IDs and UUIDS are not available
 		Long: "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {

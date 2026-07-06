@@ -21,3 +21,7 @@ flash-cli           summary             Prints summary of cards, counts in group
 flash-cli <filter>  search      <mods>  Search for existing cards
                                         Two modes   1) no mods: use a fzf to look through fronts and backs
                                                     2) with mods produce all cards that match the text input
+
+# Roadmap
+
+- [ ] regular expression filters
