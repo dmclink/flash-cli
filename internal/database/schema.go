@@ -19,14 +19,14 @@ var schema = fmt.Sprintf(`
 
 	CREATE TABLE IF NOT EXISTS %[2]s (
 		flashcard_id INTEGER NOT NULL,
-		tag TEXT NOT NULL,
+		name TEXT NOT NULL,
 		PRIMARY KEY (tag, flashcard_id),
 		FOREIGN KEY (flashcard_id) REFERENCES %[1]s(id) ON DELETE CASCADE
 	) WITHOUT ROWID;
 
 	CREATE TABLE IF NOT EXISTS %[3]s (
 		flashcard_id INTEGER NOT NULL,
-		group_name TEXT NOT NULL,
+		name TEXT NOT NULL,
 		PRIMARY KEY (group_name, flashcard_id),
 		FOREIGN KEY (flashcard_id) REFERENCES %[1]s(id) ON DELETE CASCADE
 	) WITHOUT ROWID;

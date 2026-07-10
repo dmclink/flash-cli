@@ -19,47 +19,47 @@ func TestParseFilters(t *testing.T) {
 		{
 			"single",
 			args{ParsedArgs{Command: "add", Filters: []string{"group:foo"}, Mods: []string{"new card::back"}, OriginalInput: "group:foo add new card::back"}},
-			[]Filter{{"group:foo", GROUP, nil}},
+			[]Filter{{GROUP, "group", "foo", false, -1, -1, "group:foo"}},
 		},
 		{
 			"compound ids",
 			args{ParsedArgs{Command: "review", Filters: []string{"1,2,8-10", "20"}, Mods: []string{}, OriginalInput: "1,2,8-10 20 review"}},
-			[]Filter{{"1", ID, nil}, {"2", ID, nil}, {"8-10", RANGE, &Range{8, 10}}, {"20", ID, nil}},
+			[]Filter{{ID, "", "1", false, 1, 1, "1"}, {ID, "", "2", false, 2, 2, "2"}, {RANGE, "", "8-10", false, 8, 10, "8-10"}, {ID, "", "20", false, 20, 20, "20"}},
 		},
 		{
 			"compound groups",
 			args{ParsedArgs{Command: "review", Filters: []string{"group:foo,bar"}, Mods: []string{}, OriginalInput: "group:foo,bar review"}},
-			[]Filter{{"group:foo", GROUP, nil}, {"group:bar", GROUP, nil}},
+			[]Filter{{GROUP, "group", "foo", false, -1, -1, "group:foo"}, {GROUP, "group", "bar", false, -1, -1, "group:bar"}},
 		},
 		{
 			"compound group alias",
 			args{ParsedArgs{Command: "review", Filters: []string{"grp:foo,bar"}, Mods: []string{}, OriginalInput: "group:foo,bar review"}},
-			[]Filter{{"group:foo", GROUP, nil}, {"group:bar", GROUP, nil}},
+			[]Filter{{GROUP, "group", "foo", false, -1, -1, "group:foo"}, {GROUP, "group", "bar", false, -1, -1, "group:bar"}},
 		},
 		{
 			"compound custom",
 			args{ParsedArgs{Command: "review", Filters: []string{"baz:foo,bar"}, Mods: []string{}, OriginalInput: "group:foo,bar review"}},
-			[]Filter{{"baz:foo", CUSTOM, nil}, {"baz:bar", CUSTOM, nil}},
+			[]Filter{{CUSTOM, "baz", "foo", false, -1, -1, "baz:foo"}, {CUSTOM, "baz", "bar", false, -1, -1, "baz:bar"}},
 		},
 		{
 			"UUID starts with digit",
 			args{ParsedArgs{Command: "review", Filters: []string{"0fb80f43-cb89-4d21-a5a1-7ef2995e7306"}, Mods: []string{}, OriginalInput: "0fb80f43-cb89-4d21-a5a1-7ef2995e7306 review"}},
-			[]Filter{{"0fb80f43-cb89-4d21-a5a1-7ef2995e7306", UUID, nil}},
+			[]Filter{{UUID, "", "0fb80f43-cb89-4d21-a5a1-7ef2995e7306", false, -1, -1, "0fb80f43-cb89-4d21-a5a1-7ef2995e7306"}},
 		},
 		{
 			"UUID starts with alpha",
 			args{ParsedArgs{Command: "review", Filters: []string{"e3e9df30-bc8a-4458-af31-18fd437342fd"}, Mods: []string{}, OriginalInput: "e3e9df30-bc8a-4458-af31-18fd437342fd review"}},
-			[]Filter{{"e3e9df30-bc8a-4458-af31-18fd437342fd", UUID, nil}},
+			[]Filter{{UUID, "", "e3e9df30-bc8a-4458-af31-18fd437342fd", false, -1, -1, "e3e9df30-bc8a-4458-af31-18fd437342fd"}},
 		},
 		{
 			"compound tags",
 			args{ParsedArgs{Command: "review", Filters: []string{"+foo,bar"}, Mods: []string{}, OriginalInput: "+foo,bar review"}},
-			[]Filter{{"+foo", TAG, nil}, {"+bar", TAG, nil}},
+			[]Filter{{TAG, "+", "foo", false, -1, -1, "+foo"}, {TAG, "+", "bar", false, -1, -1, "+bar"}},
 		},
 		{
 			"- tag",
 			args{ParsedArgs{Command: "review", Filters: []string{"-foo"}, Mods: []string{}, OriginalInput: "-foo review"}},
-			[]Filter{{"-foo", TAG, nil}},
+			[]Filter{{TAG, "-", "foo", true, -1, -1, "-foo"}},
 		},
 	}
 	for _, tt := range tests {
@@ -81,49 +81,23 @@ func TestParseFilters(t *testing.T) {
 
 func TestFilter_String(t *testing.T) {
 	type fields struct {
-		f     string
-		Type  FilterType
-		Range *Range
+		f string
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		{"empty string", fields{"", CUSTOM, nil}, ""},
-		{"valid filter", fields{"group:foo", GROUP, nil}, "group:foo"},
+		{"empty string", fields{""}, ""},
+		{"valid filter", fields{"group:foo"}, "group:foo"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := Filter{
-				f:    tt.fields.f,
-				Type: tt.fields.Type,
+				f: tt.fields.f,
 			}
 			if got := f.String(); got != tt.want {
 				t.Errorf("Filter.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNewRange(t *testing.T) {
-	type args struct {
-		f RawFilter
-	}
-	tests := []struct {
-		name string
-		args args
-		want Range
-	}{
-		{"same number", args{"1-1"}, Range{1, 1}},
-		{"same double digit number", args{"10-10"}, Range{10, 10}},
-		{"regular range", args{"5-10"}, Range{5, 10}},
-		{"larger number first", args{"10-5"}, Range{5, 10}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewRange(tt.args.f); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewRange() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -599,60 +573,92 @@ func TestRawFilter_isIDType(t *testing.T) {
 	}
 }
 
-func TestGetGroups(t *testing.T) {
+func TestParseSearchFilters(t *testing.T) {
 	type args struct {
-		filters []Filter
+		parsedArgs ParsedArgs
 	}
 	tests := []struct {
 		name string
 		args args
-		want []string
-	}{
-		{
-			"no filters",
-			args{[]Filter{}},
-			[]string{},
-		},
-		{
-			"no groups",
-			args{[]Filter{{"1", ID, nil}, {"4-9", RANGE, &Range{4, 9}}, {"foo:bar", CUSTOM, nil}}},
-			[]string{},
-		},
-		{
-			"one group",
-			args{[]Filter{{"1", ID, nil}, {"4-9", RANGE, &Range{4, 9}}, {"group:baz", GROUP, nil}, {"foo:bar", CUSTOM, nil}}},
-			[]string{"baz"},
-		},
-		{
-			"many groups",
-			args{[]Filter{{"group:foo", GROUP, nil}, {"group:baz", GROUP, nil}, {"group:bar", CUSTOM, nil}}},
-			[]string{"foo", "baz", "bar"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetGroups(tt.args.filters); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetGroups() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetTags(t *testing.T) {
-	type args struct {
-		filters []Filter
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
+		want SearchFilters
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetTags(tt.args.filters); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetTags() = %v, want %v", got, tt.want)
+			if got := ParseSearchFilters(tt.args.parsedArgs); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseSearchFilters() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewSearchFilters(t *testing.T) {
+	type args struct {
+		filters []Filter
+	}
+	tests := []struct {
+		name string
+		args args
+		want SearchFilters
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewSearchFilters(tt.args.filters); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSearchFilters() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilter_IsMandated(t *testing.T) {
+	type fields struct {
+		Type FilterType
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{"group filter", fields{GROUP}, false},
+		{"tag filter", fields{TAG}, true},
+		{"id filter", fields{ID}, false},
+		{"uuid filter", fields{UUID}, false},
+		{"custom filter", fields{CUSTOM}, false},
+		{"range filter", fields{RANGE}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := Filter{
+				Type: tt.fields.Type,
+			}
+			if got := f.IsMandated(); got != tt.want {
+				t.Errorf("Filter.IsMandated() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRawFilter_toFilter(t *testing.T) {
+	tests := []struct {
+		name string
+		rf   RawFilter
+		want Filter
+	}{
+		{"group filter", RawFilter("group:foo"), Filter{GROUP, "group", "foo", false, -1, -1, "group:foo"}},
+		{"+ tag filter", RawFilter("+foo"), Filter{TAG, "+", "foo", false, -1, -1, "+foo"}},
+		{"- tag filter", RawFilter("-foo"), Filter{TAG, "-", "foo", true, -1, -1, "-foo"}},
+		{"id filter", RawFilter("1"), Filter{ID, "", "1", false, 1, 1, "1"}},
+		{"range filter", RawFilter("5-100"), Filter{RANGE, "", "5-100", false, 5, 100, "5-100"}},
+		{"uuid filter", RawFilter("e3e9df30-bc8a-4458-af31-18fd437342fd"), Filter{UUID, "", "e3e9df30-bc8a-4458-af31-18fd437342fd", false, -1, -1, "e3e9df30-bc8a-4458-af31-18fd437342fd"}},
+		{"custom filter", RawFilter("foo:bar"), Filter{CUSTOM, "foo", "bar", false, -1, -1, "foo:bar"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rf.toFilter(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RawFilter.toFilter() = %v, want %v", got, tt.want)
 			}
 		})
 	}

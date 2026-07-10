@@ -18,6 +18,8 @@ func main() {
 
 	db, err := database.Open()
 	if err != nil {
+		// TODO: consider logging the error trace and printing a simple statement to user
+		// on this and others
 		fmt.Fprintf(os.Stderr, "Error: finding path and opening database | %v\n", err)
 		os.Exit(1)
 	}

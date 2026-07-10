@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,55 +20,84 @@ const (
 	CUSTOM
 )
 
+// SearchFtilers is an object to hold arrays of all filter types found in args
+// separated into their respective buckets
+type SearchFilters struct {
+	IDs     []Filter
+	Ranges  []Filter
+	UUIDs   []Filter
+	Tags    []Filter
+	Groups  []Filter
+	Customs []Filter
+	Size    int
+}
+
+func ParseSearchFilters(parsedArgs ParsedArgs) SearchFilters {
+	filters := ParseFilters(parsedArgs)
+	return NewSearchFilters(filters)
+}
+
+func NewSearchFilters(filters []Filter) SearchFilters {
+	result := SearchFilters{}
+	for _, filter := range filters {
+		typ := filter.Type
+		result.Size++
+		switch typ {
+		case ID:
+			result.IDs = append(result.IDs, filter)
+		case RANGE:
+			result.Ranges = append(result.Ranges, filter)
+		case UUID:
+			result.UUIDs = append(result.UUIDs, filter)
+		case GROUP:
+			result.Groups = append(result.Groups, filter)
+		case TAG:
+			result.Tags = append(result.Tags, filter)
+		case CUSTOM:
+			result.Customs = append(result.Customs, filter)
+			// CUSTOM type filters aren't currently included in the DB query building
+			// I will likely handle them differently somewhere else, as such we don't want to increment size
+			// or it will cause an empty WHERE clause to be built
+			// If I instead include custom into the regular db search query then delete this line
+			result.Size--
+		default:
+			fmt.Println("unexpected type creating new search filter")
+			panic("code error")
+		}
+	}
+
+	return result
+}
+
 // Filter is a single filter (no compounds) which hold the string and the filter type
 // Values stored in Type are one of constants ID|RANGE|UUID|TAG|GROUP|CUSTOM
 type Filter struct {
-	// f is the raw filter string
-	f string
 	// Type is an iota enum one of ID|RANGE|UUID|TAG|GROUP|CUSTOM that represents the filter's type
 	Type FilterType
-	// Range is an optional field that exists for all RANGE filter types otherwise is nil
-	// It holds the conversion of the raw filter type into integers
-	Range *Range
+	// Key is the filter key for CUSTOM type filters. Will equal "group" for GROUP types and
+	// its respective +/- tag for TAGs though other fields should be used. All others will be empty string
+	Key string
+	// Value is filter string processed for database query. Strips prefixes
+	Value string
+	// True if it was a '-' tag. Will be global mandate exclusion rather than 'or' behavior.
+	IsExclude bool
+	// Low end of the ID range, inclusive. Will equal High if single ID. Will equal -1 for all other types.
+	Low int
+	// High end of the ID range, inclusive. Will equal Low if single ID. Will equal -1 for all other types.
+	High int
+	// f is the raw filter string
+	f string
 }
 
 func (f Filter) String() string {
 	return f.f
 }
 
-// Range is a filter type that is an inclusive range of IDs.
-// Low will always be the smaller of the two numbers
-type Range struct {
-	Low  int
-	High int
-}
-
-// NewRange creates a new Range from the filter passed to it.
-// Casts the string representations of the number on each side of the range to an int
-// Ensures the smaller of the two is assigned to Low regardless of position in string
-// Preconditions: only valid Range type filters are allowed passed to f.
-// ie. they match the pattern <digit[s]>-<digit[s]>
-// Both numbers are small enough to fit into an int
-func NewRange(f RawFilter) Range {
-	s := f.String()
-	if f.getType() != RANGE {
-		panic("this function is only to be called with RANGE type filters")
-	}
-	split := strings.Split(s, "-")
-	lo, err := strconv.Atoi(split[0])
-	if err != nil {
-		panic("failed splitting range string. strings passed to this func should be format <int>-<int> | " + err.Error())
-	}
-	hi, err := strconv.Atoi(split[1])
-	if err != nil {
-		panic("failed splitting range string. strings passed to this func should be format <int>-<int> | " + err.Error())
-	}
-
-	if hi < lo {
-		lo, hi = hi, lo
-	}
-
-	return Range{lo, hi}
+// IsMandated returns true if filter is a TAG type, all other types return false by default.
+// Mandated in this context refers to SQL queries for this filter to have implicit 'and' behavior
+// rather than default 'or'.
+func (f Filter) IsMandated() bool {
+	return f.Type == TAG
 }
 
 // ParseFilters takes a ParsedArgs struct and extracts its filters field. It then separates all
@@ -101,6 +131,9 @@ func ParseFilters(args ParsedArgs) []Filter {
 	// enough to be annoying to make a generic type for it, performance shouldnt be a big hit
 	compoundTypedFilters := make([]compoundTypedFilter, 0, len(compoundFilters))
 	for _, f := range compoundFilters {
+		// could pass down the type into a second array or new interface or something to avoid double parsing
+		// getType (it gets called again later in toFilter() after they're split into individual filters)
+		// but I'm lazy and parsing is simple enough it's probably not worth added complexity
 		switch f.getType() {
 		case GROUP:
 			compoundTypedFilters = append(compoundTypedFilters, compoundGroupFilter{baseFilter{f}})
@@ -119,40 +152,52 @@ func ParseFilters(args ParsedArgs) []Filter {
 	}
 
 	result := make([]Filter, 0, len(singleRawFilters))
-	for _, f := range singleRawFilters {
-		if f.getType() == RANGE {
-			r := NewRange(f)
-			result = append(result, Filter{f.String(), f.getType(), &r})
-		} else {
-			result = append(result, Filter{f.String(), f.getType(), nil})
-		}
+	for _, rf := range singleRawFilters {
+		f := rf.toFilter()
+		result = append(result, f)
 	}
 
 	return result
 }
 
-// GetGroups returns all GROUP type elements in filters and strips their "group:" prefixes
-func GetGroups(filters []Filter) []string {
-	result := make([]string, 0, len(filters))
-	for _, f := range filters {
-		if f.Type == GROUP {
-			result = append(result, strings.TrimPrefix(f.String(), "group:"))
+// toFilter parses the RawFilter to determine its type then converts it into a Filter
+func (rf RawFilter) toFilter() Filter {
+	typ := rf.getType()
+	s := rf.String()
+	switch typ {
+	case ID:
+		id, _ := strconv.Atoi(s)
+		return Filter{typ, "", s, false, id, id, s}
+	case RANGE:
+		sp := strings.Split(s, "-")
+		lo, err := strconv.Atoi(sp[0])
+		if err != nil {
+			fmt.Println("invalid range passed to toFilter. this should have been processsed and casted correctly | filter: ", rf.String())
+			panic("code error")
 		}
-	}
-
-	return result
-}
-
-// GetTags returns all TAG type elements in filters
-func GetTags(filters []Filter) []string {
-	result := make([]string, 0, len(filters))
-	for _, f := range filters {
-		if f.Type == TAG {
-			result = append(result, f.String())
+		hi, err := strconv.Atoi(sp[1])
+		if err != nil {
+			fmt.Println("invalid range passed to toFilter. this should have been processsed and casted correctly | filter: ", rf.String())
+			panic("code error")
 		}
+		if hi < lo {
+			lo, hi = hi, lo
+		}
+		return Filter{typ, "", s, false, lo, hi, s}
+	case UUID:
+		return Filter{typ, "", s, false, -1, -1, s}
+	case GROUP:
+		sp := strings.SplitN(s, ":", 2)
+		return Filter{typ, "group", sp[1], false, -1, -1, s}
+	case TAG:
+		isExcl := s[0] == '-'
+		return Filter{typ, s[0:1], s[1:], isExcl, -1, -1, s}
+	case CUSTOM:
+		sp := strings.SplitN(s, ":", 2)
+		return Filter{typ, sp[0], sp[1], false, -1, -1, s}
+	default:
+		panic("unexpected type in RawFilter, likely code error")
 	}
-
-	return result
 }
 
 // groupPrefixes are reserved prefixes to denote a GROUP filter. Any filter with a semi-colon not

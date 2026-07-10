@@ -11,17 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//TODO: implement filter type check and assignment for clarity on code branching for validation
-// type filterType int
-//
-// const (
-// 	ID filterType = iota
-// 	ID_RANGE
-// 	MOD
-// )
-
 // ParsedArgs are the command line arguments separated into categories split at parsed command
-// TODO: where do flags end up? are they lost in my parsing? do they get counted as filters since they start with a '-'?
 type ParsedArgs struct {
 	Command string
 	Filters []string
@@ -34,22 +24,10 @@ type ParsedArgs struct {
 	parsedFilters *[]Filter
 }
 
-// GetGroups returns all GROUP type filters with their "group:" prefix stripped
-func (args ParsedArgs) GetGroups() []string {
-	args.parseFilters()
-	return GetGroups(*args.parsedFilters)
-}
-
-// GetTags returns all TAG type filters
-func (args ParsedArgs) GetTags() []string {
-	args.parseFilters()
-	return GetTags(*args.parsedFilters)
-}
-
 // parseFilters is just a wrapper func for ParseFilters to apply its result
 // to the private field parsedFilters. Does nothing if parsedFilters is not nil
 // so it is safe to call multiple times.
-// Must be called before accessing that field to ensure it is populated
+// This method must be called before accessing the parsedFilters field to ensure it is populated
 func (args *ParsedArgs) parseFilters() {
 	if args.parsedFilters != nil {
 		return

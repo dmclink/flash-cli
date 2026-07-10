@@ -453,96 +453,6 @@ func TestParsedArgs_Args(t *testing.T) {
 	}
 }
 
-func TestParsedArgs_GetGroups(t *testing.T) {
-	type fields struct {
-		Command       string
-		Filters       []string
-		Mods          []string
-		OriginalInput string
-		parsedFilters *[]Filter
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   []string
-	}{
-		{
-			"no groups",
-			fields{"review", []string{"+foo"}, []string{}, "flash-cli +foo review", nil},
-			[]string{},
-		},
-		{
-			"compound groups",
-			fields{"review", []string{"group:foo,bar"}, []string{}, "flash-cli group:foo,bar review", nil},
-			[]string{"foo", "bar"},
-		},
-		{
-			"multiple groups",
-			fields{"review", []string{"group:foo", "group:bar"}, []string{}, "flash-cli -foo +bar review", nil},
-			[]string{"foo", "bar"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := ParsedArgs{
-				Command:       tt.fields.Command,
-				Filters:       tt.fields.Filters,
-				Mods:          tt.fields.Mods,
-				OriginalInput: tt.fields.OriginalInput,
-				parsedFilters: tt.fields.parsedFilters,
-			}
-			if got := args.GetGroups(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParsedArgs.GetGroups() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestParsedArgs_GetTags(t *testing.T) {
-	type fields struct {
-		Command       string
-		Filters       []string
-		Mods          []string
-		OriginalInput string
-		parsedFilters *[]Filter
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   []string
-	}{
-		{
-			"no tags",
-			fields{"review", []string{"group:foo"}, []string{}, "flash-cli group:foo review", nil},
-			[]string{},
-		},
-		{
-			"compound tags",
-			fields{"review", []string{"+foo,bar"}, []string{}, "flash-cli +foo,bar review", nil},
-			[]string{"+foo", "+bar"},
-		},
-		{
-			"multiple tags",
-			fields{"review", []string{"-foo", "+bar"}, []string{}, "flash-cli -foo +bar review", nil},
-			[]string{"-foo", "+bar"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := ParsedArgs{
-				Command:       tt.fields.Command,
-				Filters:       tt.fields.Filters,
-				Mods:          tt.fields.Mods,
-				OriginalInput: tt.fields.OriginalInput,
-				parsedFilters: tt.fields.parsedFilters,
-			}
-			if got := args.GetTags(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParsedArgs.GetTags() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestParsedArgs_parseFilters(t *testing.T) {
 	type fields struct {
 		Command       string
@@ -551,7 +461,7 @@ func TestParsedArgs_parseFilters(t *testing.T) {
 		OriginalInput string
 		parsedFilters *[]Filter
 	}
-	want := []Filter{{"group:foo", GROUP, nil}, {"group:bar", GROUP, nil}}
+	want := []Filter{{GROUP, "group", "foo", false, -1, -1, "group:foo"}, {GROUP, "group", "bar", false, -1, -1, "group:bar"}}
 	tests := []struct {
 		name   string
 		fields fields

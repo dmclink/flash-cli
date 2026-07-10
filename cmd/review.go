@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dmclink/flash-cli/internal/database"
+	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/dmclink/flash-cli/internal/reviewer"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -12,8 +13,9 @@ import (
 
 func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "review",
-		Short: "Review flashcards",
+		Use:                "review",
+		Short:              "Review flashcards",
+		DisableFlagParsing: true,
 		// TODO: change these comments about mods, filters, and config after those are implemented
 		Long: "Review flashcards in order by set by mods or defaults ordered by last reviewed, oldest first. Shows one flashcard at a time. Can be filtered by groups or ID ranges. Settings can be changed with config",
 		// TODO: parse filters and mods here
@@ -21,7 +23,13 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 		// 	return nil
 		// },
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cards, err := database.GetAllFlashcards(db)
+			parsedArgs, err := parser.ExtractParsedArgs(cmd)
+			if err != nil {
+				return fmt.Errorf("extracting parsed args | %w", err)
+			}
+
+			filters := parser.ParseSearchFilters(parsedArgs)
+			cards, err := database.GetFlashcards(db, filters)
 			if err != nil {
 				return fmt.Errorf("getting flashcards from db | %w", err)
 			}
@@ -30,9 +38,6 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("reviewing cards | %w", err)
 			}
-			// for _, card := range cards {
-			// 	fmt.Println(card)
-			// }
 			return nil
 		},
 	}

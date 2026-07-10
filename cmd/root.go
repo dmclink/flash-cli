@@ -33,6 +33,10 @@ func Execute(db *sql.DB) error {
 	}
 	os.Args = parsedArgs.Args(os.Args[0])
 
+	// TODO: consider maintaining a global (or context) commands set that gets built here
+	// to use for FindCommand in the parser instead of current naive implementation to
+	// stop at the first word that doesn't match a filter
+
 	rootCmd.AddCommand(NewVersionCmd(db, v))
 	rootCmd.AddCommand(NewAddCmd(db, v))
 	rootCmd.AddCommand(NewReviewCmd(db, v))
@@ -40,6 +44,7 @@ func Execute(db *sql.DB) error {
 	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
 
 	// TODO: remove error from signature and just call os.Exit(1) instead?
+	// compare the different default output behavior from cobra on erroring with both
 	return rootCmd.ExecuteContext(ctx)
 }
 
