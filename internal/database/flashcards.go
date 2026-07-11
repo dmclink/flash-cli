@@ -49,6 +49,7 @@ func AddFlashcard(db *sql.DB, front, back string, groups, tags []parser.Filter) 
 	if len(tags) > 0 {
 		for _, tag := range tags {
 			if tag.IsExclude {
+				fmt.Printf("ignoring excluded tag -%s. Did you mean to use a '+'?\n", tag.Value)
 				continue
 			}
 			tagsQuery := fmt.Sprintf("INSERT INTO %s (flashcard_id, name) VALUES (?, ?)", constant.DATABASE_TABLE_TAGS)
