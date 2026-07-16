@@ -50,13 +50,15 @@ func DataDirectory() (string, error) {
 	var result string
 	switch {
 	case IsLinux():
-		homeDir := os.Getenv("XDG_DATA_HOME")
-		if homeDir == "" {
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
 			home, err := os.UserHomeDir()
 			if err != nil {
 				return "", err
 			}
 			result = filepath.Join(home, ".local", "share")
+		} else {
+			result = dataDir
 		}
 	default:
 		return os.UserConfigDir()
