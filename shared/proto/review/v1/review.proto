@@ -1,0 +1,18 @@
+syntax = "proto3";
+package review.v1;
+
+import "common/v1/common.proto";
+
+message ProcessRequest {
+  common.v1.FilterSet filters = 1;
+  repeated string unparsed_modifiers = 2;
+  repeated common.v1.Flashcard cards = 3;
+}
+
+message ProcessResponse {
+  repeated common.v1.Flashcard cards = 1;
+}
+
+service ReviewProcessorService {
+  rpc Process(ProcessRequest) returns (ProcessResponse);
+}

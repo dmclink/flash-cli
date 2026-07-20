@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/parser"
@@ -41,7 +43,8 @@ func Execute(db *sql.DB) error {
 	rootCmd.AddCommand(NewAddCmd(db, v))
 	rootCmd.AddCommand(NewReviewCmd(db, v))
 
-	ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs)
+	ctx, stop := signal.NotifyContext(context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, parsedArgs), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	// TODO: remove error from signature and just call os.Exit(1) instead?
 	// compare the different default output behavior from cobra on erroring with both

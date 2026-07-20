@@ -6,6 +6,6 @@ type Flashcard struct {
 	LastReview int    `db:"last_review"`
 	Front      string `db:"front"`
 	Back       string `db:"back"`
-	CreatedAt  string `db:"created_at"`
+	CreatedAt  int    `db:"created_at"`
 	ExtData    []byte `db:"ext_data"`
 }

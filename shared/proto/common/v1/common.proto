@@ -1,0 +1,25 @@
+syntax = "proto3";
+package common.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+message Flashcard {
+  int64 id = 1;
+  string uuid = 2;
+  string front = 3;
+  string back = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp last_review = 6;
+  google.protobuf.Struct ext_data = 7;
+}
+
+// Representation for standard filters
+message FilterSet {
+  repeated string ids = 1;
+  repeated string ranges = 2;
+  repeated string uuids = 3;
+  repeated string tags = 4;
+  repeated string groups = 5;
+  map<string, string> customs = 6;
+}

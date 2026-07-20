@@ -1,0 +1,22 @@
+syntax = "proto3";
+package render.v1;
+
+import "common/v1/common.proto";
+
+message ProcessRequest {
+  common.v1.FilterSet filters = 1;
+  repeated string unparsed_modifiers = 2;
+  common.v1.Flashcard card = 3;
+  int32 current_card_num = 4;
+  int32 total_card_count = 5;
+}
+
+message ProcessResponse {
+  string formatted_front = 1;
+  string formatted_back = 2;
+  string progress = 3;
+}
+
+service RenderService {
+  rpc Process(ProcessRequest) returns (ProcessResponse);
+}

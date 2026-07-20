@@ -94,14 +94,14 @@ func GetAllFlashcards(db *sql.DB) ([]Flashcard, error) {
 func GetFlashcards(db *sql.DB, filters parser.SearchFilters) ([]Flashcard, error) {
 	query, args := buildFlashcardSelectQuery(filters)
 
-	// DEBUG: FIXME:
-	fmt.Println(query)
-	fmt.Println()
-	fmt.Println("--- SQL ARGUMENT MAPPING ---")
-	for i, arg := range args {
-		fmt.Printf(" Placeholder ? #%d  ==>  Value: %v (%T)\n", i+1, arg, arg)
-	}
-	fmt.Println("----------------------------")
+	// // DEBUG: FIXME: delete this after i decide how to do custom queries and default things and ensure it works
+	// fmt.Println(query)
+	// fmt.Println()
+	// fmt.Println("--- SQL ARGUMENT MAPPING ---")
+	// for i, arg := range args {
+	// 	fmt.Printf(" Placeholder ? #%d  ==>  Value: %v (%T)\n", i+1, arg, arg)
+	// }
+	// fmt.Println("----------------------------")
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return []Flashcard{}, fmt.Errorf("failed performing database query | %w", err)
@@ -126,7 +126,7 @@ func buildFlashcardSelectQuery(filters parser.SearchFilters) (string, []any) {
 	tTable := constant.DATABASE_TABLE_TAGS
 
 	// NOTE: casting fTable as f we will use this throughout our query strings
-	baseQuery := fmt.Sprintf("SELECT\n\tf.id, f.uuid, f.last_review, f.front, f.back, f.created_at, f.ext_data\nFROM\n\t%s f", fTable)
+	baseQuery := fmt.Sprintf("SELECT\n\tf.id, f.uuid, f.last_review, f.front, f.back, f.created_at, json(f.ext_data)\nFROM\n\t%s f", fTable)
 
 	if filters.Size == 0 {
 		return baseQuery + ";", []any{}

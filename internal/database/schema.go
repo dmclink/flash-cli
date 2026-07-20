@@ -10,9 +10,9 @@ var schema = fmt.Sprintf(`
 	CREATE TABLE IF NOT EXISTS %[1]s (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		uuid BLOB UNIQUE,
-		last_review INTEGER DEFAULT (unixepoch()),
 		front TEXT NOT NULL,
 		back TEXT NOT NULL,
+		last_review INTEGER DEFAULT (unixepoch()),
 		created_at INTEGER DEFAULT (unixepoch()),
 		ext_data TEXT CHECK (json_valid(ext_data))
 	);

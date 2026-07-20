@@ -1,0 +1,10 @@
+name = "python-simple-renderer"
+alias = "pyrender"
+version = "1.0.0"
+author = "dmclink"
+description = "An example renderer plugin written in Python"
+executable = "main.py"
+
+[capabilities]
+review_processor = false
+renderer = true

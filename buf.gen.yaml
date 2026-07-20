@@ -1,0 +1,26 @@
+version: v2
+
+clean: true
+
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/dmclink/flash-cli/gen/go
+
+plugins:
+  - local: protoc-gen-go
+    out: gen/go
+    opt: paths=source_relative
+
+  - local: protoc-gen-go-grpc
+    out: gen/go
+    opt: 
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  - remote: buf.build/protocolbuffers/python:v21.12
+    out: gen/python
+
+  - remote: buf.build/grpc/python:v1.54.0
+    out: gen/python

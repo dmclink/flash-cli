@@ -1,0 +1,19 @@
+syntax = "proto3";
+package addcard.v1;
+
+import "common/v1/common.proto";
+ 
+
+message ProcessRequest {
+  common.v1.FilterSet filters = 1;
+  repeated string modifiers = 2;
+  common.v1.Flashcard card = 3;
+}
+
+message ProcessResponse {
+  common.v1.Flashcard card = 1;
+}
+
+service AddCardService {
+  rpc Process(ProcessRequest) returns (ProcessResponse);
+}

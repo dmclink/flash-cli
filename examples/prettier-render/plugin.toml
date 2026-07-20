@@ -1,0 +1,10 @@
+name = "prettier-render"
+alias = "prettier"
+version = "1.0.0"
+author = "dmclink"
+description = "An example renderer plugin with pretty highlights"
+executable = "main"
+
+[capabilities]
+review_processor = false
+renderer = true
