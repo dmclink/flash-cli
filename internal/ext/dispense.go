@@ -3,8 +3,9 @@ package ext
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
+	"syscall"
+	"time"
 
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	review "github.com/dmclink/flash-cli/gen/go/review/v1"
@@ -53,14 +54,21 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 		return nil, nil, fmt.Errorf("unknown renderer '%s' | no matching plugin manifest found", name)
 	}
 
+	// silentLogger := hclog.New(&hclog.LoggerOptions{
+	// 	Name:   "discard",
+	// 	Output: io.Discard,
+	// 	Level:  hclog.Off,
+	// })
+	cmd := exec.Command(binaryPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: shared.Handshake,
-		Plugins:         shared.PluginMap,
-
-		Cmd: exec.Command(binaryPath),
-
+		HandshakeConfig:  shared.Handshake,
+		Plugins:          shared.PluginMap,
+		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		SyncStderr:       os.Stderr,
+		// Logger:           silentLogger,
 	})
 
 	rpcClient, err := client.Client()
@@ -83,8 +91,14 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 
 	renderPlugin := &rendererHostAdapter{client: renderClient}
 
+	cleanup := func() {
+		_, _ = renderClient.Shutdown(context.Background(), &render.ShutdownRequest{})
+		time.Sleep(15 * time.Millisecond)
+		client.Kill()
+	}
+
 	// need to defer the returned func here to cleanup process
-	return renderPlugin, client.Kill, nil
+	return renderPlugin, cleanup, nil
 }
 
 type ReviewProcessor interface {
@@ -121,11 +135,9 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 	}
 
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: shared.Handshake,
-		Plugins:         shared.PluginMap,
-
-		Cmd: exec.Command(binaryPath),
-
+		HandshakeConfig:  shared.Handshake,
+		Plugins:          shared.PluginMap,
+		Cmd:              exec.Command(binaryPath),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	})
 

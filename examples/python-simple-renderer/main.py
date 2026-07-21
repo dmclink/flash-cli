@@ -31,8 +31,9 @@ from renderer import FRONT_INSTRUCTION
 # Network adapter: Translates incoming gRPC network requests from the core app
 # and forwards the arguments directly into your custom renderer.py script.
 class RenderServiceRouter(render_pb2_grpc.RenderServiceServicer):
-    def __init__(self, user_renderer):
+    def __init__(self, user_renderer, grpc_server):
         self.user_renderer = user_renderer
+        self.grpc_server = grpc_server
 
     def Process(self, request, context):
         try:
@@ -78,6 +79,11 @@ class RenderServiceRouter(render_pb2_grpc.RenderServiceServicer):
             context.set_details(str(e))
             raise e
 
+    def Shutdown(self, request, context):
+        print("Received graceful shutdown command from host.", file=sys.stderr)
+        self.grpc_server.stop(grace=0.5)
+        return render_pb2.ShutdownResponse()
+
 
 # Initialization engine: Boots up the background gRPC network bus daemon
 # and negotiates the required subprocess handshake parameters with the Go host.
@@ -85,7 +91,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     
     user_implementation = CustomFlashcardRenderer()
-    router = RenderServiceRouter(user_implementation)
+    router = RenderServiceRouter(user_implementation, server)
     
     render_pb2_grpc.add_RenderServiceServicer_to_server(router, server)
 

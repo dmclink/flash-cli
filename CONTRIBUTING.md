@@ -24,14 +24,15 @@ Available plugin capabalities which you can create to alter behavior
 ## Creating a new plugin capability
 ### Steps
 1. create a new proto package in shared/proto with ProcessRequest ProcessResponse and Service
-    - in `buf.gen.yaml` i've disabled `require_unimplemented_servers` generated code works with go generics
+    - in `buf.gen.yaml` i've disabled `require_unimplemented_servers` so no need to embed these
 2. build with `buf generate`
 3. update shared/plugin.go with the new capability
     1. add a const for the plugin key to shared/plugin.go
     2. import newly made gen/go package
-    3. add the new capability to PluginMap at bottom of file
-        - mostly just copy pasting other plugins but change the key and package name in all the generic Types
-        - also change the Register..Server call name and New...ServiceClient call names
+    3. create new `<Capability>Plugin` struct with `Impl <capability>.<Capability>ServiceServer` field
+    4. create `GRPCServer` and `GRPCClient` methods for the new struct to satisfy the interface
+        - make sure they call and return the imported capability package's Register.. and New.. methods respectively
+    5. add the new capability to PluginMap at bottom of file
 4. update ext/dispense.go
     1. Create a new <Capability> interface with a new method (ie. Process(ctx, cards) Render(ctx, cards)) that takes and returns any
         desired internal types ie. input []database.Flashcard and returns []database.Flashcard
@@ -41,12 +42,13 @@ Available plugin capabalities which you can create to alter behavior
         1. can bypass plugin with a switch case at the top for native supported stuff
         2. add boilerplate to get the plugin binary, create client, rpcClient, dispense raw plugin, cast to generic plugin
             - `rpcClient.Dispense(shared.<CAPABILITY_KEY>)`
-        3. wrap with capabilityHostAdapter and return (we'll make it later)
+        3. cast raw client to `<capability>.<Capability>ServiceClient`
+        4. wrap with `<capability>HostAdapter` and return (implement it in a later instruction)
 5. update ext/hostadapters.go
-    1. create new `<capability>HostAdapter` type that wraps a rawClient shared.GenericPluginHandler
-        - don't forget to change the correct imported gen/go package here if copy pasting another implementation
+    1. create new `<capability>HostAdapter` type that wraps the client from the previous step (in dispense.go)
+        - don't forget to change the correct imported capability package here if copy pasting another implementation
     2. Write the `<capability>HostAdapter` method that satisfies the private interface we made in ext/dispense.go
-        - Process method here converts from internal types into generic <capability>.ProcessRequest
+        - Process method here converts from internal types into a generic grpc comaptible `<capability>.ProcessRequest`
         - converts dbCards toProtoCards if necessary
         - calls a.rawClient.Process() with the built request
         - converts back from ProcessResponse as necessary and returns internal compatible data structures

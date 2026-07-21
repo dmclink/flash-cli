@@ -111,6 +111,9 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 				cardNum := i + 1
 				front, back, progress, err := renderer.Render(ctx, card, cardNum, cardCount, unparsedMods)
 				if err != nil {
+					if ctx.Err() != nil {
+						break
+					}
 					return fmt.Errorf("running renderer | %w", err)
 				}
 
@@ -133,7 +136,11 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 					break
 				}
 			}
-			fmt.Println("All cards complete")
+			if ctx.Err() != nil {
+				fmt.Println("\nReview session aborted by user.")
+			} else {
+				fmt.Println("All cards complete")
+			}
 			return nil
 		},
 	}

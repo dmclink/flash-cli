@@ -7,6 +7,7 @@ import (
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	"github.com/dmclink/flash-cli/shared"
 	"github.com/hashicorp/go-plugin"
+	"google.golang.org/grpc"
 )
 
 // Network Router: Receives incoming network wire data from the host CLI app
@@ -19,6 +20,7 @@ import (
 type RenderHandler struct {
 	// CustomRenderer exposes your layout implementation logic.
 	CustomRenderer *PrettierRenderer
+	grpcServer     *grpc.Server
 }
 
 // THIS EXACT SIGNATURE IS MANDATORY.
@@ -59,6 +61,12 @@ func (h *RenderHandler) Init(ctx context.Context, req *render.InitRequest) (*ren
 	}, nil
 }
 
+// Shutdown is called by the host program when rendering stops or receives a kill signal
+func (h *RenderHandler) Shutdown(ctx context.Context, req *render.ShutdownRequest) (*render.ShutdownResponse, error) {
+	// Plugins written in Go can just be a noop for shutdown as go-plugin pluging.Serve() handles kill signals gracefully
+	return &render.ShutdownResponse{}, nil
+}
+
 // Initialization Entry Point: Negotiates connections with the Go core app host.
 // To build your own layout engine, leave this file alone and edit renderer.go.
 func main() {
@@ -73,6 +81,10 @@ func main() {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: shared.Handshake,
 		Plugins:         pluginMap,
-		GRPCServer:      plugin.DefaultGRPCServer,
+		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
+			s := grpc.NewServer(opts...)
+			renderImpl.grpcServer = s
+			return s
+		},
 	})
 }
