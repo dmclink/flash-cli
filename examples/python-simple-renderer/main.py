@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
 import os
-import shutil
 from concurrent import futures
 import grpc
 
-# find the bundled 'gen/python' directory right next to this script
+# Core plumbing: Automatically wires up the bundled gRPC protobuf stubs.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# modify this path if you bundle the proto stubs in a different location than in this example
 PY_GEN_DIR = os.path.join(CURRENT_DIR, "gen", "python")
 
 if os.path.exists(PY_GEN_DIR):
@@ -19,61 +19,58 @@ else:
 from render.v1 import render_pb2
 from render.v1 import render_pb2_grpc
 
-RESET = "\033[0m"
-BOLD = "\033[1m"
-WHITE = "\033[37m"
-DIM = "\033[2m"
-YELLOW = "\033[33m"
-
-BG_CYAN = "\033[46m"
-BG_GREEN = "\033[42m"
+# This pulls in your custom styling layout code. 
+# to build your own renderer plugin, leave this main.py alone and edit renderer.py.
+# edit the import class as necessary
+from renderer import CustomFlashcardRenderer
 
 
-class SimpleVerticalRenderer(render_pb2_grpc.RenderServiceServicer):
-    """
-    Implements the RenderService contract. Returns stacked vertical layouts
-    that are easily read by the host application's printing systems.
-    """
+# Network adapter: Translates incoming gRPC network requests from the core app
+# and forwards the arguments directly into your custom renderer.py script.
+class RenderServiceRouter(render_pb2_grpc.RenderServiceServicer):
+    def __init__(self, user_renderer):
+        self.user_renderer = user_renderer
+
     def Process(self, request, context):
-        card = request.card
-        card_num = request.current_card_num
-        total_cards = request.total_card_count
-
-        columns, _ = shutil.get_terminal_size(fallback=(80, 24))
-
-        front_view = self.build_banner(" FRONT SIDE (QUESTION) ", BG_CYAN, columns)
-        front_view += f"\n{BOLD}{card.front}{RESET}\n\n"
-
-        back_view = self.build_banner(" FRONT SIDE (QUESTION) ", BG_CYAN, columns)
-        back_view += f"\n{card.front}\n\n"
-        back_view += self.build_banner(" BACK SIDE (ANSWER) ", BG_GREEN, columns)
-        back_view += f"\n{BOLD}{card.back}{RESET}\n\n"
-
-        progress_bar = f"{DIM}[Progress Metrics: {card_num}/{total_cards}]{RESET}"
-
-        return render_pb2.ProcessResponse(
-            formatted_front=front_view,
-            formatted_back=back_view,
-            progress=progress_bar
-        )
-
-    def build_banner(self, title_text, bg_color, total_width):
-        """
-        Creates a full-width colored header line with centered title text.
-        """
-        if len(title_text) > total_width:
-            title_text = title_text[:total_width-3] + "..."
+        try:
+            # Map request variables directly into your render_card arguments.
+            # If you want to change what your plugin accepts, you must update the arguments
+            # inside CustomFlashcardRenderer.render_card() to match this line exactly.
+            # double check render.proto to ensure request variable fields match the proto object
+            # feel free not to use unparsed_modifiers if your plugin doesn't support any custom mods
+            front, back, progress = self.user_renderer.render_card(
+                card=request.card,
+                card_num=request.current_card_num,
+                total_cards=request.total_card_count,
+                unparsed_modifiers=list(request.unparsed_modifiers) if hasattr(request, 'unparsed_modifiers') else []
+            )
             
-        remaining_space = total_width - len(title_text)
-        left_pad = remaining_space // 2
-        right_pad = remaining_space - left_pad
+            # fields here must match. front and back must be included for obvious reasons. 
+            # progress has a sane default on empty strings and can safely be dropped. 
+            # If no progress bar desired just pass a string with one whitespace like " "
+            return render_pb2.ProcessResponse(
+                formatted_front=front,
+                formatted_back=back,
+                progress=progress
+            )
+        except Exception as e:
+            # Captures any crashes inside your renderer.py and pipes the stack trace
+            # safely to the main console stream so you can debug your layout errors.
+            print(f"Plugin error executing render custom logic: {e}", file=sys.stderr)
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            raise e
 
-        return f"{bg_color}{WHITE}{BOLD}{' ' * left_pad}{title_text}{' ' * right_pad}{RESET}\n"
 
-
+# Initialization engine: Boots up the background gRPC network bus daemon
+# and negotiates the required subprocess handshake parameters with the Go host.
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
-    render_pb2_grpc.add_RenderServiceServicer_to_server(SimpleVerticalRenderer(), server)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    
+    user_implementation = CustomFlashcardRenderer()
+    router = RenderServiceRouter(user_implementation)
+    
+    render_pb2_grpc.add_RenderServiceServicer_to_server(router, server)
     
     port = server.add_insecure_port('127.0.0.1:0')
     server.start()
@@ -82,7 +79,8 @@ def serve():
         print("Insecure authentication handshake failure.", file=sys.stderr)
         sys.exit(1)
 
-        # don't forget this line!
+    # Core protocol link: Never print() or write anywhere else to sys.stdout in your code.
+    # The main application hooks into this exact standard output stream line to connect.
     sys.stdout.write(f"1|1|tcp|127.0.0.1:{port}|grpc\n")
     sys.stdout.flush()
 
