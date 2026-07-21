@@ -10,6 +10,7 @@ import (
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	review "github.com/dmclink/flash-cli/gen/go/review/v1"
 	"github.com/dmclink/flash-cli/internal/database"
+	"github.com/dmclink/flash-cli/internal/logger"
 	"github.com/dmclink/flash-cli/internal/renderer"
 	reviewer "github.com/dmclink/flash-cli/internal/reviewer/modes"
 	"github.com/dmclink/flash-cli/shared"
@@ -68,7 +69,7 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 		Plugins:          shared.PluginMap,
 		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		// Logger:           silentLogger,
+		Logger:           logger.L,
 	})
 
 	rpcClient, err := client.Client()
@@ -139,6 +140,7 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 		Plugins:          shared.PluginMap,
 		Cmd:              exec.Command(binaryPath),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		Logger:           logger.L,
 	})
 
 	rpcClient, err := client.Client()

@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/dmclink/flash-cli/internal/constant"
+	"github.com/dmclink/flash-cli/internal/logger"
 	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,13 +63,12 @@ func NewRootCmd(db *sql.DB, v *viper.Viper, cfgFile *string) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("initializing viper config | %w", err)
 			}
+
+			if err := logger.InitPluginLogger(); err != nil {
+				return fmt.Errorf("initializing plugin logger | %w", err)
+			}
+
 			return nil
-		},
-		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: run the default command when calling root by itself, likely reviewCmd
-			// currently the default review command is injected in Execute while parsing args
-			// if nothing else is there so i guess no code is required here, can still add it or print an error
-			// verify if still need Run so that persistentPreRun is called by cobra?
 		},
 		Version: "0.1.0",
 	}
