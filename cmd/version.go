@@ -6,10 +6,9 @@ import (
 
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func NewVersionCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
+func NewVersionCmd(db *sql.DB) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Prints the flash-cli version",

@@ -14,10 +14,9 @@ import (
 	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/dmclink/flash-cli/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
+func NewReviewCmd(db *sql.DB) *cobra.Command {
 	return &cobra.Command{
 		Use:                "review",
 		Short:              "Review flashcards",

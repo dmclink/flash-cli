@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dmclink/flash-cli/internal/constant"
+	"github.com/dmclink/flash-cli/internal/config"
 	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
+func NewAddCmd(db *sql.DB) *cobra.Command {
 	return &cobra.Command{
 		Use:                "add",
 		Short:              "Add new flashcard",
@@ -26,7 +25,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			}
 
 			mods := strings.Join(parsedArgs.Mods, " ")
-			delim := v.GetString(constant.VIPER_KEY_DELIMITER)
+			delim := config.V.GetString(config.KeyAddSeparator)
 			if !strings.Contains(mods, delim) {
 				return fmt.Errorf("<mods> for `add` command must contain delimiter '%s'", delim)
 			}
@@ -40,7 +39,7 @@ func NewAddCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 			}
 
 			mods := strings.Join(parsedArgs.Mods, " ")
-			delim := v.GetString(constant.VIPER_KEY_DELIMITER)
+			delim := config.V.GetString(config.KeyAddSeparator)
 			splitMods := strings.SplitN(mods, delim, 2)
 			if len(splitMods) < 2 {
 				return fmt.Errorf("something went wrong, delimiter doesn't exist but should have been verified in PreRun")
