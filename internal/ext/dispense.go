@@ -71,15 +71,13 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 		client.Kill()
 		return nil, nil, fmt.Errorf("plugin does not support the render interface | %w", err)
 	}
-
-	type expectedClientType = shared.GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse]
-	genericClient, ok := raw.(expectedClientType)
+	renderClient, ok := raw.(render.RenderServiceClient)
 	if !ok {
 		client.Kill()
-		return nil, nil, fmt.Errorf("plugin type assertion failure: unexpected underlying struct")
+		return nil, nil, fmt.Errorf("plugin type assertion failure: expected render.RenderServiceClient")
 	}
 
-	renderPlugin := &rendererHostAdapter{rawClient: genericClient}
+	renderPlugin := &rendererHostAdapter{client: renderClient}
 
 	// need to defer the returned func here to cleanup process
 	return renderPlugin, client.Kill, nil
@@ -139,14 +137,13 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 		return nil, nil, fmt.Errorf("plugin does not support the review_processor interface | %w", err)
 	}
 
-	type expectedClientType = shared.GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse]
-	genericClient, ok := raw.(expectedClientType)
+	reviewClient, ok := raw.(review.ReviewProcessorServiceClient)
 	if !ok {
 		client.Kill()
 		return nil, nil, fmt.Errorf("plugin type assertion failure: unexpected underlying struct")
 	}
 
-	reviewerPlugin := &reviewProcessorHostAdapter{rawClient: genericClient}
+	reviewerPlugin := &reviewProcessorHostAdapter{client: reviewClient}
 
 	// need to defer the returned func here to cleanup process
 	return reviewerPlugin, client.Kill, nil

@@ -17,6 +17,12 @@ const (
 	// TODO: add new capability keys here
 )
 
+const (
+	RENDER_KEY_INSTRUCTION_FRONT = "instruction_front"
+	RENDER_KEY_INSTRUCTION_BACK  = "instruction_back"
+	RENDER_KEY_STARTUP_BANNER    = "startup_banner"
+)
+
 // Handshake is a common handshake that is shared by plugin and host.
 var Handshake = plugin.HandshakeConfig{
 	// This isn't required when using VersionedPlugins
@@ -62,36 +68,37 @@ func (p *GenericGRPCPlugin[S, C]) GRPCClient(ctx context.Context, broker *plugin
 	return p.NewClientFunc(c), nil
 }
 
+func NewPlugin[S any, C any](
+	registerFn func(grpc.ServiceRegistrar, S),
+	newClientFn func(grpc.ClientConnInterface) C,
+) func(S) plugin.Plugin {
+	return func(impl S) plugin.Plugin {
+		return &GenericGRPCPlugin[S, C]{
+			RegisterServerFunc: registerFn,
+			NewClientFunc:      newClientFn,
+			Impl:               impl,
+		}
+	}
+}
+
 // PluginMap contains dispensible plugins.
 var PluginMap = map[string]plugin.Plugin{
-	CAPABILITY_REVIEW_PROCESSOR: &GenericGRPCPlugin[
-		GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse],
-		GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse]]{
-		RegisterServerFunc: func(s grpc.ServiceRegistrar, impl GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse]) {
-			review.RegisterReviewProcessorServiceServer(s,
-				&GenericPluginServer[*review.ProcessRequest, *review.ProcessResponse]{
-					Handler: impl.Process,
-				})
+	CAPABILITY_REVIEW_PROCESSOR: NewPlugin(
+		func(s grpc.ServiceRegistrar, impl review.ReviewProcessorServiceServer) {
+			review.RegisterReviewProcessorServiceServer(s, impl)
 		},
-		NewClientFunc: func(cc grpc.ClientConnInterface) GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse] {
-			pbClient := review.NewReviewProcessorServiceClient(cc)
-			return &GenericPluginClient[*review.ProcessRequest, *review.ProcessResponse]{CallFunc: pbClient.Process}
+		func(cc grpc.ClientConnInterface) review.ReviewProcessorServiceClient {
+			return review.NewReviewProcessorServiceClient(cc)
 		},
-	},
-	CAPABILITY_RENDER: &GenericGRPCPlugin[
-		GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse],
-		GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse]]{
-		RegisterServerFunc: func(s grpc.ServiceRegistrar, impl GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse]) {
-			render.RegisterRenderServiceServer(s,
-				&GenericPluginServer[*render.ProcessRequest, *render.ProcessResponse]{
-					Handler: impl.Process,
-				})
-		},
-		NewClientFunc: func(cc grpc.ClientConnInterface) GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse] {
-			pbClient := render.NewRenderServiceClient(cc)
-			return &GenericPluginClient[*render.ProcessRequest, *render.ProcessResponse]{CallFunc: pbClient.Process}
-		},
-	},
+	)(nil),
 
+	CAPABILITY_RENDER: NewPlugin(
+		func(s grpc.ServiceRegistrar, impl render.RenderServiceServer) {
+			render.RegisterRenderServiceServer(s, impl)
+		},
+		func(cc grpc.ClientConnInterface) render.RenderServiceClient {
+			return render.NewRenderServiceClient(cc)
+		},
+	)(nil),
 	// TODO: add new capabilities here
 }

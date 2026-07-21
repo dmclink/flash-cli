@@ -3,6 +3,14 @@ package render.v1;
 
 import "common/v1/common.proto";
 
+message InitRequest {}
+
+message InitResponse {
+  string startup_banner = 1;
+  string instruction_front = 2;
+  string instruction_back = 3;
+}
+
 message ProcessRequest {
   common.v1.FilterSet filters = 1;
   repeated string unparsed_modifiers = 2;
@@ -18,5 +26,6 @@ message ProcessResponse {
 }
 
 service RenderService {
+  rpc Init(InitRequest) returns (InitResponse);
   rpc Process(ProcessRequest) returns (ProcessResponse);
 }

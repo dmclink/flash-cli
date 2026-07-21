@@ -19,6 +19,20 @@ const (
 	BgLine = "\033[48;5;235m"
 )
 
+// some static metadata variables that are sent on plugin connect
+var startupBanner = `
+   ___          _   _   _            __                _           
+  / _ \_ __ ___| |_| |_(_) ___ _ __ /__\ ___ _ __   __| | ___ _ __ 
+ / /_)/ '__/ _ \ __| __| |/ _ \ '__/ \/// _ \ '_ \ / _| |/ _ \ '__|
+/ ___/| | |  __/ |_| |_| |  __/ | / _  \  __/ | | | (_| |  __/ |   
+\/    |_|  \___|\__|\__|_|\___|_| \/ \_/\___|_| |_|\__,_|\___|_|   
+	`
+
+var (
+	instructionFront = "Enter to flip, q to quit!"
+	instructionBack  = "Enter to next, q to quit!"
+)
+
 // DESIGN CONTROLLER:
 // Edit this struct and its 'RenderCard' method to customize your layouts.
 // This method is called sequentially by main.go every time a card is drawn.
