@@ -19,3 +19,7 @@ func (r BasicRenderer) Render(ctx context.Context, card database.Flashcard, card
 		"",
 		nil
 }
+
+func (r BasicRenderer) Init(ctx context.Context) (string, string, string, error) {
+	return "", "", "", nil
+}

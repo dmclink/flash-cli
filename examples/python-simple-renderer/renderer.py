@@ -5,10 +5,29 @@ RESET = "\033[0m"
 BOLD = "\033[1m"
 WHITE = "\033[37m"
 DIM = "\033[2m"
+UNDERLINE = "\033[4m"
 
 BG_CYAN = "\033[46m"
 BG_GREEN = "\033[42m"
 
+# Foreground Colors
+CYAN = "\033[36m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+MAGENTA = "\033[35m"
+
+# Visual Elements
+BANNER_STR = f"""
+{CYAN}{BOLD}===================================================={RESET}
+{MAGENTA}{BOLD}          ⚡ FLASHCARD CLI - PYTHON ENGINE ⚡          {RESET}
+{CYAN}{BOLD}===================================================={RESET}
+ {GREEN}➔ Layout Engine Loaded Successfully{RESET}
+ {GREEN}➔ Listening for Host Commands...{RESET}
+{CYAN}{BOLD}----------------------------------------------------{RESET}
+"""
+
+FRONT_INSTRUCTION = f"{YELLOW}{BOLD}[?] Guess{RESET} | {UNDERLINE}Press Enter to Flip the Card {RESET}"
+BACK_INSTRUCTION  = f"{GREEN}{BOLD}[!] Nailed it{RESET} | {UNDERLINE}Press key to continue... {RESET}"
 
 class CustomFlashcardRenderer:
     """

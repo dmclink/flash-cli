@@ -8,6 +8,8 @@ import (
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	review "github.com/dmclink/flash-cli/gen/go/review/v1"
 	"github.com/dmclink/flash-cli/internal/database"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type reviewProcessorHostAdapter struct {
@@ -43,8 +45,17 @@ type rendererHostAdapter struct {
 }
 
 func (a *rendererHostAdapter) Init(ctx context.Context) (string, string, string, error) {
-	resp, err := a.client.Init(ctx, &render.InitRequest{})
+	resp, err := a.client.Init(ctx, &render.InitRequest{}) // nothing in request required to fetch metadata
+	fmt.Println("INSIDE INIT RESP:", resp)
 	if err != nil {
+		// since metadata returned from Init are completely optional strings with safe fallbacks
+		// we add a silent skip if the method isnt implemented
+		if st, ok := status.FromError(err); ok {
+			if st.Code() == codes.Unimplemented {
+				fmt.Println("[WARNING] Python plugin returned Unimplemented for Init! Silently skipping to allow process loop preservation.")
+				return "", "", "", nil
+			}
+		}
 		return "", "", "", fmt.Errorf("sending init request | %w", err)
 	}
 

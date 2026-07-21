@@ -3,6 +3,7 @@ package ext
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
@@ -27,6 +28,7 @@ const (
 
 type Renderer interface {
 	Render(ctx context.Context, card database.Flashcard, cardNum int, cardCount int, modifiers []string) (string, string, string, error)
+	Init(ctx context.Context) (string, string, string, error)
 }
 
 func DispenseRenderer(name string) (Renderer, func(), error) {
@@ -58,6 +60,7 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 		Cmd: exec.Command(binaryPath),
 
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		SyncStderr:       os.Stderr,
 	})
 
 	rpcClient, err := client.Client()
@@ -71,6 +74,7 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 		client.Kill()
 		return nil, nil, fmt.Errorf("plugin does not support the render interface | %w", err)
 	}
+
 	renderClient, ok := raw.(render.RenderServiceClient)
 	if !ok {
 		client.Kill()

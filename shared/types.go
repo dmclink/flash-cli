@@ -1,10 +1,5 @@
 package shared
 
-import (
-	addcard "github.com/dmclink/flash-cli/gen/go/addcard/v1"
-	review "github.com/dmclink/flash-cli/gen/go/review/v1"
-)
-
 // type Flashcard struct {
 // 	ID         int
 // 	UUID       string
@@ -41,11 +36,3 @@ import (
 // type AddCardProcessResponse struct {
 // 	Card Flashcard
 // }
-
-type ReviewProcessor interface {
-	GenericPluginHandler[*review.ProcessRequest, *review.ProcessResponse]
-}
-
-type AddCardProcessor interface {
-	GenericPluginHandler[*addcard.ProcessRequest, *addcard.ProcessResponse]
-}

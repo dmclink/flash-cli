@@ -23,6 +23,9 @@ from render.v1 import render_pb2_grpc
 # to build your own renderer plugin, leave this main.py alone and edit renderer.py.
 # edit the import class as necessary
 from renderer import CustomFlashcardRenderer
+from renderer import BANNER_STR
+from renderer import BACK_INSTRUCTION
+from renderer import FRONT_INSTRUCTION
 
 
 # Network adapter: Translates incoming gRPC network requests from the core app
@@ -61,6 +64,20 @@ class RenderServiceRouter(render_pb2_grpc.RenderServiceServicer):
             context.set_details(str(e))
             raise e
 
+    def Init(self, request, context):
+        try:
+            # Satisfies the Init implementation signature mapping back metadata to Go host
+            return render_pb2.InitResponse(
+                startup_banner=BANNER_STR,
+                instruction_front=FRONT_INSTRUCTION,
+                instruction_back=BACK_INSTRUCTION
+            )
+        except Exception as e:
+            print(f"Plugin error executing initialization sequence: {e}", file=sys.stderr)
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            raise e
+
 
 # Initialization engine: Boots up the background gRPC network bus daemon
 # and negotiates the required subprocess handshake parameters with the Go host.
@@ -71,7 +88,7 @@ def serve():
     router = RenderServiceRouter(user_implementation)
     
     render_pb2_grpc.add_RenderServiceServicer_to_server(router, server)
-    
+
     port = server.add_insecure_port('127.0.0.1:0')
     server.start()
 

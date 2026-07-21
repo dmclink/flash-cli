@@ -29,7 +29,7 @@ func (h *RenderHandler) Process(ctx context.Context, req *render.ProcessRequest)
 		return &render.ProcessResponse{}, fmt.Errorf("no card provided to plugin")
 	}
 
-	// Safely pass execution to your clean renderer.py style module code
+	// Safely pass execution to your clean renderer.go module code
 	front, back, progress := h.CustomRenderer.RenderCard(
 		req.Card,
 		req.CurrentCardNum,
@@ -44,24 +44,32 @@ func (h *RenderHandler) Process(ctx context.Context, req *render.ProcessRequest)
 	}, nil
 }
 
+// Init is called once on plugin startup, but it is safe to completely omit this method
+// as it errors out silently and falls back to sane defaults for these strings
+// Otherwise, set these strings to add a welcome/startup banner and alter the instruction
+// messages at the bottom of the render
+func (h *RenderHandler) Init(ctx context.Context, req *render.InitRequest) (*render.InitResponse, error) {
+	// req is empty and unused
+
+	// return any desired metadata
+	return &render.InitResponse{
+		StartupBanner:    startupBanner,
+		InstructionFront: instructionFront,
+		InstructionBack:  instructionBack,
+	}, nil
+}
+
 // Initialization Entry Point: Negotiates connections with the Go core app host.
 // To build your own layout engine, leave this file alone and edit renderer.go.
 func main() {
-	// Instantiate your unique styling layout configuration
 	rendererLogic := &PrettierRenderer{}
 	renderImpl := &RenderHandler{CustomRenderer: rendererLogic}
 
-	// Register the interface hook mapping inside the plugin network topology
+	// Just pass your handler straight to the concrete struct
 	pluginMap := map[string]plugin.Plugin{
-		shared.CAPABILITY_RENDER: &shared.GenericGRPCPlugin[
-			shared.GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse],
-			shared.GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse]]{
-			Impl:               renderImpl,
-			RegisterServerFunc: shared.PluginMap[shared.CAPABILITY_RENDER].(*shared.GenericGRPCPlugin[shared.GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse], shared.GenericPluginHandler[*render.ProcessRequest, *render.ProcessResponse]]).RegisterServerFunc,
-		},
+		shared.CAPABILITY_RENDER: &shared.RenderPlugin{Impl: renderImpl},
 	}
 
-	// Start the background gRPC daemon subprocess loop
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: shared.Handshake,
 		Plugins:         pluginMap,

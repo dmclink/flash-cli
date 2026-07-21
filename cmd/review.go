@@ -93,6 +93,19 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 				}
 			}()
 
+			startupBanner, frontInstruction, backInstruction, err := renderer.Init(ctx)
+			if err != nil {
+				return err
+			}
+			frontInstruction = frontInstructionFallback(frontInstruction)
+			backInstruction = backInstructionFallback(backInstruction)
+
+			if startupBanner != "" {
+				utils.ClearScreen()
+				fmt.Println(startupBanner)
+				waitForInput(ctx, inputChan)
+			}
+
 			cardCount := len(cards)
 			for i, card := range cards {
 				cardNum := i + 1
@@ -101,12 +114,11 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 					return fmt.Errorf("running renderer | %w", err)
 				}
 
-				progress = progressOrDefault(progress, cardNum, cardCount)
+				progress = progressFallback(progress, cardNum, cardCount)
 
 				utils.ClearScreen()
 				fmt.Println(front)
-				footerFront := fmt.Sprintf("%sPress [ENTER] to reveal the answer... ('q' to quit): ", Yellow)
-				printLockedFooter(progress, footerFront)
+				printLockedFooter(progress, frontInstruction)
 
 				if !waitForInput(ctx, inputChan) {
 					break
@@ -115,8 +127,7 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 				utils.ClearScreen()
 				fmt.Println(back)
 
-				footerBack := fmt.Sprintf("%sPress [ENTER] for the next card... ('q' to quit): ", Yellow)
-				printLockedFooter(progress, footerBack)
+				printLockedFooter(progress, backInstruction)
 
 				if !waitForInput(ctx, inputChan) {
 					break
@@ -128,11 +139,23 @@ func NewReviewCmd(db *sql.DB, v *viper.Viper) *cobra.Command {
 	}
 }
 
-func progressOrDefault(progress string, cardNum int, cardCount int) string {
-	if progress == "" {
-		return fmt.Sprintf("%s[%d/%d]", Yellow, cardNum, cardCount)
+func fallbackStr(str string, fallback string) string {
+	if str == "" {
+		return fallback
 	}
-	return progress
+	return str
+}
+
+func frontInstructionFallback(instruction string) string {
+	return fallbackStr(instruction, fmt.Sprintf("%sPress [ENTER] to reveal the answer... ('q' to quit): ", Yellow))
+}
+
+func backInstructionFallback(instruction string) string {
+	return fallbackStr(instruction, fmt.Sprintf("%sPress [ENTER] for the next card... ('q' to quit): ", Yellow))
+}
+
+func progressFallback(progress string, cardNum int, cardCount int) string {
+	return fallbackStr(progress, fmt.Sprintf("%s[%d/%d]", Yellow, cardNum, cardCount))
 }
 
 const (
