@@ -3,8 +3,8 @@ package logger
 import (
 	"io"
 	"os"
-	"path/filepath"
 
+	"github.com/dmclink/flash-cli/internal/config"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -17,16 +17,8 @@ var L hclog.Logger = hclog.New(&hclog.LoggerOptions{
 })
 
 func InitPluginLogger() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "."
-	}
-
-	logDir := filepath.Join(homeDir, ".local", "state", "flash-cli")
-	_ = os.MkdirAll(logDir, 0o755)
-
-	logPath := filepath.Join(logDir, "plugins.log")
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	logDir := config.V.GetString(config.KeyPathLogsDir)
+	logFile, err := os.OpenFile(logDir, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ const (
 	KeyDefaultReviewRenderer = "default.review.renderer"
 	KeyDefaultReviewLimit    = "default.review.limit"
 	KeyPathPluginsDir        = "path.plugins_dir"
-	KeyPathLogs              = "path.logs"
+	KeyPathLogsDir           = "path.logs_dir"
 )
 
 func InitConfig() error {
@@ -80,7 +80,7 @@ func setInitDefaults() error {
 	}
 	defaultConfigDir := filepath.Join(home, ".config", constant.APP_NAME)
 	V.SetDefault(KeyPathPluginsDir, filepath.Join(defaultConfigDir, "plugins"))
-	V.SetDefault(KeyPathLogs, filepath.Join(home, ".local", "state", constant.APP_NAME, "plugins.log"))
+	V.SetDefault(KeyPathLogsDir, filepath.Join(home, ".local", "state", constant.APP_NAME, "plugins.log"))
 
 	V.SetDefault(KeyDefaultFilterGroup, "")
 	V.SetDefault(KeyDefaultFilterTag, "")

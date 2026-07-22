@@ -94,14 +94,6 @@ func GetAllFlashcards(db *sql.DB) ([]Flashcard, error) {
 func GetFlashcards(db *sql.DB, filters parser.SearchFilters) ([]Flashcard, error) {
 	query, args := buildFlashcardSelectQuery(filters)
 
-	// // DEBUG: FIXME: delete this after i decide how to do custom queries and default things and ensure it works
-	// fmt.Println(query)
-	// fmt.Println()
-	// fmt.Println("--- SQL ARGUMENT MAPPING ---")
-	// for i, arg := range args {
-	// 	fmt.Printf(" Placeholder ? #%d  ==>  Value: %v (%T)\n", i+1, arg, arg)
-	// }
-	// fmt.Println("----------------------------")
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return []Flashcard{}, fmt.Errorf("failed performing database query | %w", err)

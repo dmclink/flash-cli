@@ -38,7 +38,6 @@ func FindPlugin(name string, capabilityName string) (*PluginManifest, string, er
 	}
 
 	pluginsDir := config.V.GetString(config.KeyPathPluginsDir)
-	fmt.Println("pluginsDir: ", pluginsDir)
 
 	dirs, err := os.ReadDir(pluginsDir)
 	if err != nil {
