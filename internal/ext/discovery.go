@@ -6,8 +6,14 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dmclink/flash-cli/internal/constant"
+	"github.com/dmclink/flash-cli/internal/config"
+	"github.com/dmclink/flash-cli/shared"
 )
+
+var checkCapabilityMap = map[string]func(PluginManifest) bool{
+	shared.CAPABILITY_RENDER:           func(m PluginManifest) bool { return m.Capabilities.Renderer },
+	shared.CAPABILITY_REVIEW_PROCESSOR: func(m PluginManifest) bool { return m.Capabilities.ReviewProcessor },
+}
 
 // PluginManifest represents the structured data required inside every plugin.toml file
 type PluginManifest struct {
@@ -25,19 +31,21 @@ type PluginManifest struct {
 }
 
 // FindPlugin handles the core logic and filters plugins based on a custom capability check.
-func FindPlugin(name string, checkCapability func(PluginManifest) bool) (*PluginManifest, string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, "", fmt.Errorf("getting user home dir | %w", err)
+func FindPlugin(name string, capabilityName string) (*PluginManifest, string, error) {
+	checkCapability, ok := checkCapabilityMap[capabilityName]
+	if !ok {
+		return nil, "", fmt.Errorf("unexpected capability name: %s", capabilityName)
 	}
 
-	pluginsDir := filepath.Join(home, ".config", constant.APP_NAME, "plugins")
+	pluginsDir := config.V.GetString(config.KeyPathPluginsDir)
+	fmt.Println("pluginsDir: ", pluginsDir)
+
 	dirs, err := os.ReadDir(pluginsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, "", nil
 		}
-		return nil, "", fmt.Errorf("reading plugin dirs | %w", err)
+		return nil, "", fmt.Errorf("reading plugin dirs at '%s' | %w", pluginsDir, err)
 	}
 
 	for _, dir := range dirs {
@@ -70,18 +78,4 @@ func FindPlugin(name string, checkCapability func(PluginManifest) bool) (*Plugin
 	}
 
 	return nil, "", fmt.Errorf("plugin '%s' not found with required capabilities", name)
-}
-
-// FindReviewPlugin finds the first plugin with ReviewProcessor capability and matching name
-func FindReviewPlugin(name string) (*PluginManifest, string, error) {
-	return FindPlugin(name, func(m PluginManifest) bool {
-		return m.Capabilities.ReviewProcessor
-	})
-}
-
-// FindRendererPlugin finds the first plugin plugins with Renderer capability and matching name
-func FindRendererPlugin(name string) (*PluginManifest, string, error) {
-	return FindPlugin(name, func(m PluginManifest) bool {
-		return m.Capabilities.Renderer
-	})
 }

@@ -15,4 +15,5 @@ message ProcessResponse {
 
 service ReviewProcessorService {
   rpc Process(ProcessRequest) returns (ProcessResponse);
+  rpc Shutdown(common.v1.ShutdownRequest) returns (common.v1.ShutdownResponse);
 }

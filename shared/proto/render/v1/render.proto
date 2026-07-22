@@ -25,11 +25,8 @@ message ProcessResponse {
   string progress = 3;
 }
 
-message ShutdownRequest {}
-message ShutdownResponse {}
-
 service RenderService {
   rpc Init(InitRequest) returns (InitResponse);
   rpc Process(ProcessRequest) returns (ProcessResponse);
-  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+  rpc Shutdown(common.v1.ShutdownRequest) returns (common.v1.ShutdownResponse);
 }

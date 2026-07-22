@@ -7,8 +7,10 @@ import (
 	"syscall"
 	"time"
 
+	common "github.com/dmclink/flash-cli/gen/go/common/v1"
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	review "github.com/dmclink/flash-cli/gen/go/review/v1"
+	"github.com/dmclink/flash-cli/internal/config"
 	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/dmclink/flash-cli/internal/logger"
 	"github.com/dmclink/flash-cli/internal/renderer"
@@ -33,73 +35,22 @@ type Renderer interface {
 	Init(ctx context.Context) (string, string, string, error)
 }
 
+// returned cleanup func must have its call deferred
 func DispenseRenderer(name string) (Renderer, func(), error) {
 	noOpCleanup := func() {}
 
-	// TODO: when renderer defaults are setup in config, change this from BASIC to whatever they have setup
-	// only fallback to basic if config not exists
-	if name == "" || name == "default" {
-		name = BASIC_RENDERER
-	}
+	lookupString := config.Resolve(config.KeyDefaultReviewRenderer, name, BASIC_RENDERER)
 
-	switch name {
+	switch lookupString {
 	case BASIC_RENDERER:
 		return renderer.BasicRenderer{}, noOpCleanup, nil
 	}
 
-	manifest, binaryPath, err := FindRendererPlugin(name)
-	if err != nil {
-		return nil, nil, fmt.Errorf("scanning plugin directory | %w", err)
-	}
-	if manifest == nil {
-		return nil, nil, fmt.Errorf("unknown renderer '%s' | no matching plugin manifest found", name)
-	}
-
-	// silentLogger := hclog.New(&hclog.LoggerOptions{
-	// 	Name:   "discard",
-	// 	Output: io.Discard,
-	// 	Level:  hclog.Off,
-	// })
-	cmd := exec.Command(binaryPath)
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig:  shared.Handshake,
-		Plugins:          shared.PluginMap,
-		Cmd:              cmd,
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Logger:           logger.L,
-	})
-
-	rpcClient, err := client.Client()
-	if err != nil {
-		client.Kill()
-		return nil, nil, fmt.Errorf("launching plugin process | %w", err)
-	}
-
-	raw, err := rpcClient.Dispense(shared.CAPABILITY_RENDER)
-	if err != nil {
-		client.Kill()
-		return nil, nil, fmt.Errorf("plugin does not support the render interface | %w", err)
-	}
-
-	renderClient, ok := raw.(render.RenderServiceClient)
-	if !ok {
-		client.Kill()
-		return nil, nil, fmt.Errorf("plugin type assertion failure: expected render.RenderServiceClient")
-	}
-
-	renderPlugin := &rendererHostAdapter{client: renderClient}
-
-	cleanup := func() {
-		_, _ = renderClient.Shutdown(context.Background(), &render.ShutdownRequest{})
-		time.Sleep(15 * time.Millisecond)
-		client.Kill()
-	}
-
-	// need to defer the returned func here to cleanup process
-	return renderPlugin, cleanup, nil
+	return dispensePlugin[render.RenderServiceClient, Renderer](
+		lookupString,
+		shared.CAPABILITY_RENDER,
+		func(c render.RenderServiceClient) Renderer { return &rendererHostAdapter{client: c} },
+	)
 }
 
 type ReviewProcessor interface {
@@ -108,15 +59,10 @@ type ReviewProcessor interface {
 
 func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 	noOpCleanup := func() {}
-
-	// TODO: when review mode defaults are setup in config, change this from SHUFFLE to whatever they have setup
-	// only fallback to shuffle if not exists
-	if mode == "" || mode == "default" {
-		mode = SHUFFLE_MODE_KEY
-	}
+	lookupString := config.Resolve(config.KeyDefaultReviewMode, mode, SHUFFLE_MODE_KEY)
 
 	// look for native review processor modes
-	switch mode {
+	switch lookupString {
 	case SHUFFLE_MODE_KEY:
 		return reviewer.ShuffleMode{}, noOpCleanup, nil
 	case LAST_REVIEW_MODE_KEY:
@@ -127,42 +73,60 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 		return reviewer.LinearMode{}, noOpCleanup, nil
 	}
 
-	manifest, binaryPath, err := FindReviewPlugin(mode)
+	return dispensePlugin(
+		lookupString,
+		shared.CAPABILITY_REVIEW_PROCESSOR,
+		func(c review.ReviewProcessorServiceClient) ReviewProcessor {
+			return &reviewProcessorHostAdapter{client: c}
+		},
+	)
+}
+
+func dispensePlugin[ClientType shared.Shutdownable, AdapterType any](pluginName string, capabilityName string, wrapClientFunc func(ClientType) AdapterType) (AdapterType, func(), error) {
+	var zero AdapterType
+
+	// findFunc returns PluginManifest but currently not being used, may be useful context for error handling for plugin info
+	// to implement later
+	_, binaryPath, err := FindPlugin(pluginName, capabilityName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("scanning plugin directory | %w", err)
-	}
-	if manifest == nil {
-		return nil, nil, fmt.Errorf("unknown review mode '%s' | no matching plugin manifest found", mode)
+		return zero, nil, fmt.Errorf("scanning plugin directory | %w", err)
 	}
 
-	client := plugin.NewClient(&plugin.ClientConfig{
+	client := createClient(binaryPath)
+	clientProtocol, err := client.Client()
+	if err != nil {
+		return zero, nil, fmt.Errorf("launching plugin process | %w", err)
+	}
+
+	rawClient, err := clientProtocol.Dispense(capabilityName)
+	if err != nil {
+		return zero, nil, fmt.Errorf("plugin does not support the render interface | %w", err)
+	}
+
+	grpcClient, ok := rawClient.(ClientType)
+	if !ok {
+		return zero, nil, fmt.Errorf("plugin type assertion failure: expected %T, got %T", (*ClientType)(nil), rawClient)
+	}
+
+	cleanup := func() {
+		_, _ = grpcClient.Shutdown(context.Background(), &common.ShutdownRequest{})
+		time.Sleep(15 * time.Millisecond)
+		client.Kill()
+	}
+
+	return wrapClientFunc(grpcClient), cleanup, nil
+}
+
+func createClient(binaryPath string) *plugin.Client {
+	cmd := exec.Command(binaryPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+	return plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  shared.Handshake,
 		Plugins:          shared.PluginMap,
-		Cmd:              exec.Command(binaryPath),
+		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		Logger:           logger.L,
 	})
-
-	rpcClient, err := client.Client()
-	if err != nil {
-		client.Kill()
-		return nil, nil, fmt.Errorf("launching plugin process | %w", err)
-	}
-
-	raw, err := rpcClient.Dispense(shared.CAPABILITY_REVIEW_PROCESSOR)
-	if err != nil {
-		client.Kill()
-		return nil, nil, fmt.Errorf("plugin does not support the review_processor interface | %w", err)
-	}
-
-	reviewClient, ok := raw.(review.ReviewProcessorServiceClient)
-	if !ok {
-		client.Kill()
-		return nil, nil, fmt.Errorf("plugin type assertion failure: unexpected underlying struct")
-	}
-
-	reviewerPlugin := &reviewProcessorHostAdapter{client: reviewClient}
-
-	// need to defer the returned func here to cleanup process
-	return reviewerPlugin, client.Kill, nil
 }

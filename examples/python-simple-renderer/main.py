@@ -18,6 +18,7 @@ else:
 
 from render.v1 import render_pb2
 from render.v1 import render_pb2_grpc
+from common.v1 import common_pb2_grpc
 
 # This pulls in your custom styling layout code. 
 # to build your own renderer plugin, leave this main.py alone and edit renderer.py.
@@ -82,7 +83,7 @@ class RenderServiceRouter(render_pb2_grpc.RenderServiceServicer):
     def Shutdown(self, request, context):
         print("Received graceful shutdown command from host.", file=sys.stderr)
         self.grpc_server.stop(grace=0.5)
-        return render_pb2.ShutdownResponse()
+        return common_pb2.ShutdownResponse()
 
 
 # Initialization engine: Boots up the background gRPC network bus daemon

@@ -23,3 +23,6 @@ message FilterSet {
   repeated string groups = 5;
   map<string, string> customs = 6;
 }
+
+message ShutdownRequest {}
+message ShutdownResponse {}

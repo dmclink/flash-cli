@@ -1,38 +1,13 @@
 package shared
 
-// type Flashcard struct {
-// 	ID         int
-// 	UUID       string
-// 	Front      string
-// 	Back       string
-// 	LastReview time.Time
-// 	CreatedAt  time.Time
-// 	ExtData    map[string]any
-// }
+import (
+	"context"
 
-// type FilterSet struct {
-// 	Tags    []string
-// 	Groups  []string
-// 	Ranges  []string
-// 	IDs     []string
-// 	Customs map[string]string
-// }
+	common "github.com/dmclink/flash-cli/gen/go/common/v1"
+	"google.golang.org/grpc"
+)
 
-//
-// type ReviewProcessRequest struct {
-// 	Filters           FilterSet
-// 	UnparsedModifiers []string
-// 	Cards             []Flashcard
-// }
-//
-// type ReviewProcessResponse struct {
-// 	Flashcards []Flashcard
-// }
-//
-// type AddCardProcessRequest struct {
-// 	Card Flashcard
-// }
-//
-// type AddCardProcessResponse struct {
-// 	Card Flashcard
-// }
+// Shutdownable defines a client plugin that can be shutdown. All plugins should match this interface
+type Shutdownable interface {
+	Shutdown(ctx context.Context, in *common.ShutdownRequest, opts ...grpc.CallOption) (*common.ShutdownResponse, error)
+}

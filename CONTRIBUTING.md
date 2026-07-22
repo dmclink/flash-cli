@@ -28,7 +28,7 @@ Available plugin capabalities which you can create to alter behavior
 2. build with `buf generate`
 3. update shared/plugin.go with the new capability
     1. add a const for the plugin key to shared/plugin.go
-    2. import newly made gen/go package
+    2. import newly generated gen/go package
     3. create new `<Capability>Plugin` struct with `Impl <capability>.<Capability>ServiceServer` field
     4. create `GRPCServer` and `GRPCClient` methods for the new struct to satisfy the interface
         - make sure they call and return the imported capability package's Register.. and New.. methods respectively
@@ -40,10 +40,7 @@ Available plugin capabalities which you can create to alter behavior
             - should not match shared package generic Process() methods, we'll convert to that later
     2. create a new Dispense<Capability> function
         1. can bypass plugin with a switch case at the top for native supported stuff
-        2. add boilerplate to get the plugin binary, create client, rpcClient, dispense raw plugin, cast to generic plugin
-            - `rpcClient.Dispense(shared.<CAPABILITY_KEY>)`
-        3. cast raw client to `<capability>.<Capability>ServiceClient`
-        4. wrap with `<capability>HostAdapter` and return (implement it in a later instruction)
+        2. returns a call to generic dispensePlugin[protoClientType, NewInterface] passing a func that wraps with hostAdapterWrapper created in the next step
 5. update ext/hostadapters.go
     1. create new `<capability>HostAdapter` type that wraps the client from the previous step (in dispense.go)
         - don't forget to change the correct imported capability package here if copy pasting another implementation
@@ -54,4 +51,4 @@ Available plugin capabalities which you can create to alter behavior
         - converts back from ProcessResponse as necessary and returns internal compatible data structures
 6. update ext/discovery.go
     1. add a new Capability field to the manifest 
-    2. add a new FindCapabiltiyPlugin func that searches for that capability 
+    2. add a new checkCapability func to the checkCapabilityMap
