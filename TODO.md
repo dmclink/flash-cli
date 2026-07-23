@@ -12,11 +12,11 @@ flash-cli <filter>  review      <mods>  Reviews flashcards that match filter, al
                                         Might need to disallow mods here if we want this to be default which runs without a command
                                         In taskwarrior you can skip the command with `task project:some-project` which will run the default
                                         command `all` and still apply the project filter
-flash-cli           config      <mods>  Changes config setting to new value set in mods
-                                        Good settings for config are defaults for other commands
-                                        ie. review default to mixed, default editor, default groups
 flash-cli           version             Prints the version
 flash-cli           help                Prints help
+flash-cli           show                Shows result of all merged configs (including in mem defaults and local overrides)
+                                        Accepts a single mod for a search string 
+                                        Colorizes overridden keys
 flash-cli           summary             Prints summary of cards, counts in groups
 flash-cli <filter>  search      <mods>  Search for existing cards
                                         Two modes   1) no mods: use a fzf to look through fronts and backs

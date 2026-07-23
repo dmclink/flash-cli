@@ -10,9 +10,9 @@ import (
 	common "github.com/dmclink/flash-cli/gen/go/common/v1"
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	review "github.com/dmclink/flash-cli/gen/go/review/v1"
+	"github.com/dmclink/flash-cli/internal/app"
 	"github.com/dmclink/flash-cli/internal/config"
 	"github.com/dmclink/flash-cli/internal/database"
-	"github.com/dmclink/flash-cli/internal/logger"
 	"github.com/dmclink/flash-cli/internal/renderer"
 	reviewer "github.com/dmclink/flash-cli/internal/reviewer/modes"
 	"github.com/dmclink/flash-cli/shared"
@@ -36,10 +36,10 @@ type Renderer interface {
 }
 
 // returned cleanup func must have its call deferred
-func DispenseRenderer(name string) (Renderer, func(), error) {
+func DispenseRenderer(a *app.App, name string) (Renderer, func(), error) {
 	noOpCleanup := func() {}
 
-	lookupString := config.Resolve(config.KeyDefaultReviewRenderer, name, BASIC_RENDERER)
+	lookupString := a.Config.Resolve(config.KeyDefaultReviewRenderer, name, BASIC_RENDERER)
 
 	switch lookupString {
 	case BASIC_RENDERER:
@@ -47,6 +47,7 @@ func DispenseRenderer(name string) (Renderer, func(), error) {
 	}
 
 	return dispensePlugin[render.RenderServiceClient, Renderer](
+		a,
 		lookupString,
 		shared.CAPABILITY_RENDER,
 		func(c render.RenderServiceClient) Renderer { return &rendererHostAdapter{client: c} },
@@ -57,9 +58,9 @@ type ReviewProcessor interface {
 	Process(ctx context.Context, dbCards []database.Flashcard, modifiers []string) ([]database.Flashcard, error)
 }
 
-func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
+func DispenseReviewProcessor(a *app.App, mode string) (ReviewProcessor, func(), error) {
 	noOpCleanup := func() {}
-	lookupString := config.Resolve(config.KeyDefaultReviewMode, mode, SHUFFLE_MODE_KEY)
+	lookupString := a.Config.Resolve(config.KeyDefaultReviewMode, mode, SHUFFLE_MODE_KEY)
 
 	// look for native review processor modes
 	switch lookupString {
@@ -74,6 +75,7 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 	}
 
 	return dispensePlugin(
+		a,
 		lookupString,
 		shared.CAPABILITY_REVIEW_PROCESSOR,
 		func(c review.ReviewProcessorServiceClient) ReviewProcessor {
@@ -82,17 +84,17 @@ func DispenseReviewProcessor(mode string) (ReviewProcessor, func(), error) {
 	)
 }
 
-func dispensePlugin[ClientType shared.Shutdownable, AdapterType any](pluginName string, capabilityName string, wrapClientFunc func(ClientType) AdapterType) (AdapterType, func(), error) {
+func dispensePlugin[ClientType shared.Shutdownable, AdapterType any](a *app.App, pluginName string, capabilityName string, wrapClientFunc func(ClientType) AdapterType) (AdapterType, func(), error) {
 	var zero AdapterType
 
 	// findFunc returns PluginManifest but currently not being used, may be useful context for error handling for plugin info
 	// to implement later
-	_, binaryPath, err := FindPlugin(pluginName, capabilityName)
+	_, binaryPath, err := FindPlugin(a, pluginName, capabilityName)
 	if err != nil {
 		return zero, nil, fmt.Errorf("scanning plugin directory | %w", err)
 	}
 
-	client := createClient(binaryPath)
+	client := createClient(a, binaryPath)
 	clientProtocol, err := client.Client()
 	if err != nil {
 		return zero, nil, fmt.Errorf("launching plugin process | %w", err)
@@ -117,7 +119,7 @@ func dispensePlugin[ClientType shared.Shutdownable, AdapterType any](pluginName 
 	return wrapClientFunc(grpcClient), cleanup, nil
 }
 
-func createClient(binaryPath string) *plugin.Client {
+func createClient(a *app.App, binaryPath string) *plugin.Client {
 	cmd := exec.Command(binaryPath)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -127,6 +129,6 @@ func createClient(binaryPath string) *plugin.Client {
 		Plugins:          shared.PluginMap,
 		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Logger:           logger.L,
+		Logger:           a.Logger,
 	})
 }

@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"database/sql"
 	"fmt"
 
+	"github.com/dmclink/flash-cli/internal/app"
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/spf13/cobra"
 )
 
-func NewVersionCmd(db *sql.DB) *cobra.Command {
+func NewVersionCmd(a *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Prints the flash-cli version",

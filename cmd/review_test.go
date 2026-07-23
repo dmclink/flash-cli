@@ -1,35 +1,11 @@
 package cmd
 
 import (
-	"database/sql"
 	"reflect"
 	"testing"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
-
-func TestNewReviewCmd(t *testing.T) {
-	type args struct {
-		db *sql.DB
-		v  *viper.Viper
-	}
-	tests := []struct {
-		name string
-		args args
-		want *cobra.Command
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewReviewCmd(tt.args.db, tt.args.v); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewReviewCmd() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func Test_hasModPrefix(t *testing.T) {
 	type args struct {

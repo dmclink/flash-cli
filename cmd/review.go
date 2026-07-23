@@ -3,12 +3,12 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"slices"
 	"strings"
 
+	"github.com/dmclink/flash-cli/internal/app"
 	"github.com/dmclink/flash-cli/internal/database"
 	"github.com/dmclink/flash-cli/internal/ext"
 	"github.com/dmclink/flash-cli/internal/parser"
@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewReviewCmd(db *sql.DB) *cobra.Command {
+func NewReviewCmd(a *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:                "review",
 		Short:              "Review flashcards",
@@ -29,14 +29,8 @@ func NewReviewCmd(db *sql.DB) *cobra.Command {
 		// },
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-
-			parsedArgs, err := parser.ExtractParsedArgs(cmd)
-			if err != nil {
-				return fmt.Errorf("extracting parsed args | %w", err)
-			}
-
-			filters := parser.ParseSearchFilters(parsedArgs)
-			cards, err := database.GetFlashcards(db, filters)
+			filters := parser.ParseSearchFilters(a.Args)
+			cards, err := database.GetFlashcards(a.DB, filters)
 			if err != nil {
 				return fmt.Errorf("getting flashcards from db | %w", err)
 			}
@@ -49,9 +43,9 @@ func NewReviewCmd(db *sql.DB) *cobra.Command {
 				return nil
 			}
 
-			reviewMode, unparsedMods := removeMode(parsedArgs.Mods)
+			reviewMode, unparsedMods := removeMode(a.Args.Mods)
 
-			processor, procCleanup, err := ext.DispenseReviewProcessor(reviewMode)
+			processor, procCleanup, err := ext.DispenseReviewProcessor(a, reviewMode)
 			if err != nil {
 				return fmt.Errorf("dispensing review processor | %w", err)
 			}
@@ -64,7 +58,7 @@ func NewReviewCmd(db *sql.DB) *cobra.Command {
 
 			rendererString, unparsedMods := removeRenderer(unparsedMods)
 
-			renderer, renderCleanup, err := ext.DispenseRenderer(rendererString)
+			renderer, renderCleanup, err := ext.DispenseRenderer(a, rendererString)
 			if err != nil {
 				return fmt.Errorf("dispensing renderer | %w", err)
 			}

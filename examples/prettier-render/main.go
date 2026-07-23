@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	common "github.com/dmclink/flash-cli/gen/go/common/v1"
 	render "github.com/dmclink/flash-cli/gen/go/render/v1"
 	"github.com/dmclink/flash-cli/shared"
 	"github.com/hashicorp/go-plugin"
@@ -62,9 +63,9 @@ func (h *RenderHandler) Init(ctx context.Context, req *render.InitRequest) (*ren
 }
 
 // Shutdown is called by the host program when rendering stops or receives a kill signal
-func (h *RenderHandler) Shutdown(ctx context.Context, req *render.ShutdownRequest) (*render.ShutdownResponse, error) {
+func (h *RenderHandler) Shutdown(ctx context.Context, req *common.ShutdownRequest) (*common.ShutdownResponse, error) {
 	// Plugins written in Go can just be a noop for shutdown as go-plugin pluging.Serve() handles kill signals gracefully
-	return &render.ShutdownResponse{}, nil
+	return &common.ShutdownResponse{}, nil
 }
 
 // Initialization Entry Point: Negotiates connections with the Go core app host.

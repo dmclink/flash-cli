@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/dmclink/flash-cli/internal/app"
 	"github.com/dmclink/flash-cli/internal/config"
 	"github.com/dmclink/flash-cli/shared"
 )
@@ -31,13 +32,13 @@ type PluginManifest struct {
 }
 
 // FindPlugin handles the core logic and filters plugins based on a custom capability check.
-func FindPlugin(name string, capabilityName string) (*PluginManifest, string, error) {
+func FindPlugin(a *app.App, name string, capabilityName string) (*PluginManifest, string, error) {
 	checkCapability, ok := checkCapabilityMap[capabilityName]
 	if !ok {
 		return nil, "", fmt.Errorf("unexpected capability name: %s", capabilityName)
 	}
 
-	pluginsDir := config.V.GetString(config.KeyPathPluginsDir)
+	pluginsDir := a.Config.V.GetString(config.KeyPathPluginsDir)
 
 	dirs, err := os.ReadDir(pluginsDir)
 	if err != nil {

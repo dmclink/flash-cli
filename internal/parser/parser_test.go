@@ -1,12 +1,10 @@
 package parser
 
 import (
-	"context"
 	"reflect"
 	"testing"
 
 	"github.com/dmclink/flash-cli/internal/constant"
-	"github.com/spf13/cobra"
 )
 
 func TestIsFilter(t *testing.T) {
@@ -346,46 +344,6 @@ func TestParseArgs(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseArgs() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestExtractParsedArgs(t *testing.T) {
-	type args struct {
-		cmd *cobra.Command
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    ParsedArgs
-		wantErr bool
-	}{
-		{
-			"valid context",
-			args{&cobra.Command{}},
-			ParsedArgs{
-				Command:       "review",
-				Filters:       []string{"1,6", "group:foo", "foo:bar", "+done"},
-				Mods:          []string{"mode:reverse"},
-				OriginalInput: "1,6 group:foo foo:bar +done review mode:reverse",
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		ctx := context.WithValue(context.Background(), constant.PARSED_ARGS_KEY, tt.want)
-		tt.args.cmd.SetContext(ctx)
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := ExtractParsedArgs(tt.args.cmd)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("ExtractParsedArgs() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr {
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ExtractParsedArgs() = %v, want %v", got, tt.want)
 			}
 		})
 	}

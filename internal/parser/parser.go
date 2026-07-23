@@ -8,7 +8,6 @@ import (
 
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/utils"
-	"github.com/spf13/cobra"
 )
 
 // ParsedArgs are the command line arguments separated into categories split at parsed command
@@ -41,18 +40,6 @@ func (args *ParsedArgs) parseFilters() {
 // <program> <command> <filters> <mods>
 func (args ParsedArgs) Args(binaryName string) []string {
 	return slices.Concat([]string{binaryName, args.Command}, args.Filters, args.Mods)
-}
-
-// ExtractParsedArgs extracts the ParsedArgs struct from the cmd's context
-// Only returns error on failing to cast the contents of the context into the ParsedArgs struct
-// which should not occur if added into context correctly
-func ExtractParsedArgs(cmd *cobra.Command) (ParsedArgs, error) {
-	parsedArgs, ok := cmd.Context().Value(constant.PARSED_ARGS_KEY).(ParsedArgs)
-	if !ok {
-		return ParsedArgs{}, fmt.Errorf("failed to cast ParsedArgs")
-	}
-
-	return parsedArgs, nil
 }
 
 // ParseArgs returns a struct for the parsed command line arguments. Returns an error if filters are malformed.
