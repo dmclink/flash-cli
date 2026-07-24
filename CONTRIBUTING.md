@@ -52,3 +52,15 @@ Available plugin capabalities which you can create to alter behavior
 6. update ext/discovery.go
     1. add a new Capability field to the manifest 
     2. add a new checkCapability func to the checkCapabilityMap
+
+## Adding a new command
+### Steps
+1. create a new file commandname.go in cmd package
+2. write a `NewNameCmd(a *app.App) *cobra.Command` factory function
+3. Write concise Short and Long descriptions
+    - these are used to fill in templates, short needs to be especially..short
+4. add Annotations field if the command uses either <mods> or <filter>
+    - annotations are used to generate the root command's help template
+    - they can also be used to generate usage strings in this command's template if lazy to type again
+5. before returning the command from the factory func, set the UsageFunc and HelpFunc (or templates)
+6. write the usage and help str/templates as global vars at the bottom of file. Watch for naming conflicts

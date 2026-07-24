@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/platform"
 )

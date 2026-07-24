@@ -15,6 +15,7 @@ import (
 // TODO: add doc comments
 // TODO: add  plugin ext_data to args and to database exec
 func AddFlashcard(db *sql.DB, front, back string, groups, tags []parser.Filter) error {
+	// TODO: this should be using the cancellable cobra context from main.go instead of creating a separate one
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	tx, err := db.BeginTx(ctx, nil)

@@ -9,7 +9,7 @@ import (
 )
 
 func NewVersionCmd(a *app.App) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Prints the flash-cli version",
 		Long:  "Prints the flash-cli version",
@@ -17,4 +17,21 @@ func NewVersionCmd(a *app.App) *cobra.Command {
 			fmt.Println(constant.VERSION)
 		},
 	}
+
+	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		fmt.Println(cmd.Short)
+		fmt.Println()
+		fmt.Println(versionHelpStr)
+	})
+
+	return cmd
 }
+
+var versionHelpStr = `USAGE
+  flash-cli version
+
+FILTERS
+  Silently ignores all filters
+
+MODS
+  Silently ignores all mods`

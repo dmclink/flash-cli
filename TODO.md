@@ -55,3 +55,7 @@ flash-cli <filter>  search      <mods>  Search for existing cards
     - might be able to lazily do this by calling add an empty card then calling edit
         - this doesnt leave a way to cancel the add unless i call `delete` if user exits editor without saving
 - [ ] change default plugin directory
+- [ ] completions for groups, tags, commands, attributes
+- [ ] hidden command generate-docs which populates man pages from root command help string
+- [ ] go releaser for builds
+- [ ] github actions/workflow macOS runners to test if download install works

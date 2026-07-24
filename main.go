@@ -40,7 +40,9 @@ func main() {
 
 	err = rootCmd.ExecuteContext(ctx)
 	if err != nil {
-		// cobra logs execution errors to os.Stderr by default
+		rootCmd.Printf("Error %v\n", err)
+		fmt.Println()
+		rootCmd.Usage()
 		os.Exit(1)
 	}
 }

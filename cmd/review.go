@@ -17,12 +17,16 @@ import (
 )
 
 func NewReviewCmd(a *app.App) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:                "review",
 		Short:              "Review flashcards",
 		DisableFlagParsing: true,
 		// TODO: change these comments about mods, filters, and config after those are implemented
 		Long: "Review flashcards in order by set by mods or defaults ordered by last reviewed, oldest first. Shows one flashcard at a time. Can be filtered by groups or ID ranges. Settings can be changed with config",
+		Annotations: map[string]string{
+			"modsyntax": "<mods>",
+			"filter":    "true",
+		},
 		// TODO: parse filters and mods here
 		// PreRunE: func(cmd *cobra.Command, args []string) error {
 		// 	return nil
@@ -137,7 +141,50 @@ func NewReviewCmd(a *app.App) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		fmt.Println(cmd.Short)
+		fmt.Println()
+		fmt.Println(reviewHelpStr)
+	})
+
+	cmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		// cobra automatically prints the error string here
+		fmt.Println()
+		fmt.Println(reviewUsageStr)
+		return nil
+	})
+
+	return cmd
 }
+
+var reviewHelpStr = `USAGE
+  flash-cli <filters> review <mods>    Reviews cards that match <filters>
+
+FILTERS
+  Filters for this command select the cards to review.
+
+MODS
+  Zero or more <mods> can be used to temporarily set attributes for different review plugins. 
+  If attributes aren't set with mods, they will fallback to config defaults.
+
+BUILT-IN ATTRIBUTES
+  mode        The review plugin that affects sorting and further filtering of cards
+  renderer    The render plugin that styles the UI
+
+EXAMPLES
+  flash-cli group:foo,bar review      Reviews all cards that belong to either group 'foo' or group 'bar'
+  flash-cli group:foo -hard review    Reviews all cards in group 'foo' that don't have the tag 'hard'
+  flash-cli review renderer=basic     Reviews cards with the basic built-in renderer
+  flash-cli review mode=linear        Reviews cards in built-in linear mode`
+
+var reviewUsageStr = `SYNTAX ERROR
+  Invalid configuration syntax provided.
+
+USAGE
+  flash-cli <filters> review <mods>
+			
+Run 'flash-cli help config for a detailed list of available options`
 
 func fallbackStr(str string, fallback string) string {
 	if str == "" {

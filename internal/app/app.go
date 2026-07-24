@@ -9,6 +9,7 @@ import (
 	"github.com/dmclink/flash-cli/internal/logger"
 	"github.com/dmclink/flash-cli/internal/parser"
 	"github.com/hashicorp/go-hclog"
+	"github.com/spf13/cobra"
 )
 
 type App struct {
@@ -43,4 +44,8 @@ func NewApp(args parser.ParsedArgs) (*App, error) {
 
 func (a *App) Close() {
 	a.DB.Close()
+}
+
+type Command struct {
+	*cobra.Command
 }
