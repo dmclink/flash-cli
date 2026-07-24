@@ -3,6 +3,8 @@ package addcard.v1;
 
 import "common/v1/common.proto";
  
+message InitRequest {}
+message InitResponse {}
 
 message ProcessRequest {
   common.v1.FilterSet filters = 1;
@@ -15,5 +17,7 @@ message ProcessResponse {
 }
 
 service AddCardService {
+  rpc Init(InitRequest) returns (InitResponse);
   rpc Process(ProcessRequest) returns (ProcessResponse);
+  rpc Shutdown(common.v1.ShutdownRequest) returns (common.v1.ShutdownResponse);
 }
