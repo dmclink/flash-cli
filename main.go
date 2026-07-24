@@ -18,7 +18,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	parsedArgs, err := parser.ParseArgs(os.Args)
+	structuralRoot := cmd.NewRootCmd(nil)
+	validCommands := make(map[string]bool)
+	for _, c := range structuralRoot.Commands() {
+		validCommands[c.Name()] = true
+		for _, alias := range c.Aliases {
+			validCommands[alias] = true
+		}
+	}
+
+	parsedArgs, err := parser.ParseArgs(os.Args, validCommands)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error: parsing and validating args\n\n%v", err)
 		os.Exit(1)

@@ -68,7 +68,8 @@ func TestValidateFilter(t *testing.T) {
 		{"valid comma separated numbers", args{"10,29,30"}, false},
 		{"valid comma separated with range", args{"10,29-30,39"}, false},
 		{"negative number", args{"-10"}, false}, // registers as valid (no error) because it treats it as a "-" operator with the flag "10" rather than a negative id
-		{"invalid number", args{"10e5"}, true},
+		{"invalid number1", args{"10e5"}, true},
+		{"invalid number2", args{"14a"}, true},
 		{"decimal number", args{"1.1"}, true},
 		{"invalid number in range", args{"10,29a,30"}, true},
 		{"unfinished range", args{"10-"}, true},
@@ -82,97 +83,6 @@ func TestValidateFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := ValidateFilter(tt.args.s); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateFilter() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_reorder(t *testing.T) {
-	type args struct {
-		args []string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []string
-		want1   int
-		wantErr bool
-	}{
-		{
-			"default command: no filters, commands or mods",
-			args{[]string{"flash-cli"}},
-			[]string{"flash-cli", constant.DEFAULT_COMMAND},
-			2, false,
-		},
-		{
-			"valid command: only command",
-			args{[]string{"flash-cli", "review"}},
-			[]string{"flash-cli", "review"},
-			2, false,
-		},
-		{
-			"valid command: with no filters and with mods",
-			args{[]string{"flash-cli", "add", "this", "is::a", "flashcard"}},
-			[]string{"flash-cli", "add", "this", "is::a", "flashcard"},
-			2, false,
-		},
-		{
-			"valid command: with single group filter and with mods",
-			args{[]string{"flash-cli", "group:go", "add", "this", "is::a", "flashcard"}},
-			[]string{"flash-cli", "add", "group:go", "this", "is::a", "flashcard"},
-			3, false,
-		},
-		{
-			"valid command: with multiple group filters and with mod",
-			args{[]string{"flash-cli", "group:go", "group:programming", "add", "this", "is::a", "flashcard"}},
-			[]string{"flash-cli", "add", "group:go", "group:programming", "this", "is::a", "flashcard"},
-			4, false,
-		},
-		{
-			"valid command: with multiple comma separated id filters",
-			args{[]string{"flash-cli", "14,18,20", "review"}},
-			[]string{"flash-cli", "review", "14,18,20"},
-			3, false,
-		},
-		{
-			"invalid id filter",
-			args{[]string{"flash-cli", "14a", "review"}},
-			[]string{"flash-cli", "14a", "review"},
-			-1, true,
-		},
-		{
-			"invalid multiple id filter",
-			args{[]string{"flash-cli", "14,a,1", "review"}},
-			[]string{"flash-cli", "14,a,1", "review"},
-			-1, true,
-		},
-		{
-			"invalid range id filter",
-			args{[]string{"flash-cli", "14-a", "review"}},
-			[]string{"flash-cli", "14-a", "review"},
-			-1, true,
-		},
-		{
-			"invalid range id filter with default command",
-			args{[]string{"flash-cli", "14-a"}},
-			[]string{"flash-cli", "14-a"},
-			-1, true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := reorder(tt.args.args)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("reorder() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr {
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("reorder() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("reorder() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -203,6 +113,7 @@ func TestValidateFilters(t *testing.T) {
 }
 
 func TestCommandIdx(t *testing.T) {
+	commands := map[string]bool{"review": true, "help": true, "add": true, "config": true}
 	type args struct {
 		args []string
 	}
@@ -220,7 +131,7 @@ func TestCommandIdx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CommandIdx(tt.args.args); got != tt.want {
+			if got := CommandIdx(tt.args.args, commands); got != tt.want {
 				t.Errorf("CommandIdx() = %v, want %v", got, tt.want)
 			}
 		})
@@ -228,6 +139,7 @@ func TestCommandIdx(t *testing.T) {
 }
 
 func TestFindCommand(t *testing.T) {
+	commands := map[string]bool{"review": true, "help": true, "add": true, "config": true}
 	type args struct {
 		args []string
 	}
@@ -237,7 +149,7 @@ func TestFindCommand(t *testing.T) {
 		want  string
 		want1 int
 	}{
-		{"no command", args{[]string{"flash-cli"}}, "flash-cli", -1},
+		{"no command", args{[]string{"flash-cli"}}, "review", -1},
 		{"only command", args{[]string{"flash-cli", "review"}}, "review", 1},
 		{"command with filters", args{[]string{"flash-cli", "1-20", "25", "group:foo", "review"}}, "review", 4},
 		{"command with mods", args{[]string{"flash-cli", "add", "flashcard", "front::and", "back"}}, "add", 1},
@@ -245,7 +157,7 @@ func TestFindCommand(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := FindCommand(tt.args.args)
+			got, got1 := FindCommand(tt.args.args, commands)
 			if got != tt.want {
 				t.Errorf("FindCommand() got = %v, want %v", got, tt.want)
 			}
@@ -257,6 +169,7 @@ func TestFindCommand(t *testing.T) {
 }
 
 func TestParseArgs(t *testing.T) {
+	commands := map[string]bool{"review": true, "help": true, "add": true, "config": true}
 	type args struct {
 		args []string
 	}
@@ -275,20 +188,18 @@ func TestParseArgs(t *testing.T) {
 				[]string{},
 				[]string{},
 				"flash-cli",
-				nil,
 			},
 			false,
 		},
 		{
 			"only command",
-			args{[]string{"flash-cli", "summary"}},
+			args{[]string{"flash-cli", "review"}},
 			ParsedArgs{
 				"flash-cli",
-				"summary",
+				"review",
 				[]string{},
 				[]string{},
-				"flash-cli summary",
-				nil,
+				"flash-cli review",
 			},
 			false,
 		},
@@ -301,7 +212,6 @@ func TestParseArgs(t *testing.T) {
 				[]string{"1-20", "25", "group:foo"},
 				[]string{},
 				"flash-cli 1-20 25 group:foo review",
-				nil,
 			},
 			false,
 		},
@@ -314,7 +224,6 @@ func TestParseArgs(t *testing.T) {
 				[]string{},
 				[]string{"flashcard", "front::and", "back"},
 				"flash-cli add flashcard front::and back",
-				nil,
 			},
 			false,
 		},
@@ -327,7 +236,6 @@ func TestParseArgs(t *testing.T) {
 				[]string{"group:foo", "group:bar"},
 				[]string{"flashcard", "front::and", "back"},
 				"flash-cli group:foo group:bar add flashcard front::and back",
-				nil,
 			},
 			false,
 		},
@@ -340,7 +248,7 @@ func TestParseArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseArgs(tt.args.args)
+			got, err := ParseArgs(tt.args.args, commands)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ParseArgs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -411,40 +319,6 @@ func TestParsedArgs_Args(t *testing.T) {
 			}
 			if got := args.Args(tt.args.binaryName); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParsedArgs.Args() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestParsedArgs_parseFilters(t *testing.T) {
-	type fields struct {
-		Command       string
-		Filters       []string
-		Mods          []string
-		OriginalInput string
-		parsedFilters *[]Filter
-	}
-	want := []Filter{{GROUP, "group", "foo", false, -1, -1, "group:foo"}, {GROUP, "group", "bar", false, -1, -1, "group:bar"}}
-	tests := []struct {
-		name   string
-		fields fields
-	}{
-		{"unparsed", fields{"review", []string{"group:foo,bar"}, []string{}, "flash-cli group:foo,bar review", nil}},
-		{"already parsed", fields{"review", []string{"group:foo,bar"}, []string{}, "flash-cli group:foo,bar review", &want}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := &ParsedArgs{
-				Command:       tt.fields.Command,
-				Filters:       tt.fields.Filters,
-				Mods:          tt.fields.Mods,
-				OriginalInput: tt.fields.OriginalInput,
-				parsedFilters: tt.fields.parsedFilters,
-			}
-			args.parseFilters()
-
-			if got := *args.parsedFilters; !reflect.DeepEqual(got, want) {
-				t.Errorf("ParseArgs.parseFilters() = %v, want %v", got, want)
 			}
 		})
 	}
