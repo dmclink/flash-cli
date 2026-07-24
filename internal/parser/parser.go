@@ -12,6 +12,7 @@ import (
 
 // ParsedArgs are the command line arguments separated into categories split at parsed command
 type ParsedArgs struct {
+	Binary  string
 	Command string
 	Filters []string
 	Mods    []string
@@ -42,6 +43,12 @@ func (args ParsedArgs) Args(binaryName string) []string {
 	return slices.Concat([]string{binaryName, args.Command}, args.Filters, args.Mods)
 }
 
+// CobraArgs returns the args with mods and filters stripped
+// TODO: need to do something about help command
+func (args ParsedArgs) CobraArgs() []string {
+	return []string{args.Binary, args.Command}
+}
+
 // ParseArgs returns a struct for the parsed command line arguments. Returns an error if filters are malformed.
 // Does not check if filters or mods are relevant to the individual subcommands requirements'
 // Takes valid command line arguments in the form <program> <filters> <command> <mods> and
@@ -54,6 +61,7 @@ func ParseArgs(args []string) (ParsedArgs, error) {
 	}
 
 	result := ParsedArgs{
+		Binary:        reorderedArgs[0],
 		Command:       reorderedArgs[1],
 		Filters:       reorderedArgs[2:modsStartIdx],
 		Mods:          reorderedArgs[modsStartIdx:],

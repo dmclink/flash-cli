@@ -237,7 +237,7 @@ func TestFindCommand(t *testing.T) {
 		want  string
 		want1 int
 	}{
-		{"no command", args{[]string{"flash-cli"}}, "", -1},
+		{"no command", args{[]string{"flash-cli"}}, "flash-cli", -1},
 		{"only command", args{[]string{"flash-cli", "review"}}, "review", 1},
 		{"command with filters", args{[]string{"flash-cli", "1-20", "25", "group:foo", "review"}}, "review", 4},
 		{"command with mods", args{[]string{"flash-cli", "add", "flashcard", "front::and", "back"}}, "add", 1},
@@ -270,6 +270,7 @@ func TestParseArgs(t *testing.T) {
 			"no command",
 			args{[]string{"flash-cli"}},
 			ParsedArgs{
+				"flash-cli",
 				constant.DEFAULT_COMMAND,
 				[]string{},
 				[]string{},
@@ -282,6 +283,7 @@ func TestParseArgs(t *testing.T) {
 			"only command",
 			args{[]string{"flash-cli", "summary"}},
 			ParsedArgs{
+				"flash-cli",
 				"summary",
 				[]string{},
 				[]string{},
@@ -294,6 +296,7 @@ func TestParseArgs(t *testing.T) {
 			"command with filters",
 			args{[]string{"flash-cli", "1-20", "25", "group:foo", "review"}},
 			ParsedArgs{
+				"flash-cli",
 				"review",
 				[]string{"1-20", "25", "group:foo"},
 				[]string{},
@@ -306,6 +309,7 @@ func TestParseArgs(t *testing.T) {
 			"command with mods",
 			args{[]string{"flash-cli", "add", "flashcard", "front::and", "back"}},
 			ParsedArgs{
+				"flash-cli",
 				"add",
 				[]string{},
 				[]string{"flashcard", "front::and", "back"},
@@ -318,6 +322,7 @@ func TestParseArgs(t *testing.T) {
 			"command with filters and mods",
 			args{[]string{"flash-cli", "group:foo", "group:bar", "add", "flashcard", "front::and", "back"}},
 			ParsedArgs{
+				"flash-cli",
 				"add",
 				[]string{"group:foo", "group:bar"},
 				[]string{"flashcard", "front::and", "back"},
