@@ -486,7 +486,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 					// this doesn't get included in the search at the moment
 					// may need to alter test want and add more tests to solo this out
 					// if this behavior changes
-					Customs: []parser.Filter{
+					KVs: []parser.Filter{
 						{
 							Type:      parser.CUSTOM,
 							Key:       "bing",

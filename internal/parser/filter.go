@@ -17,19 +17,50 @@ const (
 	UUID
 	TAG
 	GROUP
+	KV
 	CUSTOM
 )
+
+func unalias(key string) string {
+	aliases := map[string]string{
+		"grp":     "group",
+		"groups":  "group",
+		"project": "group",
+		"proj":    "group",
+		"prj":     "group",
+		"lim":     "limit",
+	}
+
+	if a, ok := aliases[key]; ok {
+		return a
+	}
+	return key
+}
 
 // SearchFtilers is an object to hold arrays of all filter types found in args
 // separated into their respective buckets
 type SearchFilters struct {
-	IDs     []Filter
-	Ranges  []Filter
-	UUIDs   []Filter
-	Tags    []Filter
-	Groups  []Filter
-	Customs []Filter
-	Size    int
+	IDs    []Filter
+	Ranges []Filter
+	UUIDs  []Filter
+	Tags   []Filter
+	Groups []Filter
+	KVs    []Filter
+	Size   int
+}
+
+func (sf SearchFilters) Limit() (int, error) {
+	result := -1
+	for _, f := range sf.KVs {
+		if f.Key == "limit" {
+			n, err := strconv.Atoi(f.Value)
+			if err != nil {
+				return -1, fmt.Errorf("invalid value '%s' passed to limit; must be a number", f.Value)
+			}
+			result = n
+		}
+	}
+	return result, nil
 }
 
 func ParseSearchFilters(parsedArgs ParsedArgs) SearchFilters {
@@ -53,8 +84,8 @@ func NewSearchFilters(filters []Filter) SearchFilters {
 			result.Groups = append(result.Groups, filter)
 		case TAG:
 			result.Tags = append(result.Tags, filter)
-		case CUSTOM:
-			result.Customs = append(result.Customs, filter)
+		case KV:
+			result.KVs = append(result.KVs, filter)
 			// CUSTOM type filters aren't currently included in the DB query building
 			// I will likely handle them differently somewhere else, as such we don't want to increment size
 			// or it will cause an empty WHERE clause to be built
@@ -135,9 +166,7 @@ func ParseFilters(args ParsedArgs) []Filter {
 		// getType (it gets called again later in toFilter() after they're split into individual filters)
 		// but I'm lazy and parsing is simple enough it's probably not worth added complexity
 		switch f.getType() {
-		case GROUP:
-			compoundTypedFilters = append(compoundTypedFilters, compoundGroupFilter{baseFilter{f}})
-		case CUSTOM:
+		case KV:
 			compoundTypedFilters = append(compoundTypedFilters, compoundCustomFilter{baseFilter{f}})
 		case ID:
 			compoundTypedFilters = append(compoundTypedFilters, compoundIDFilter{baseFilter{f}})
@@ -186,23 +215,23 @@ func (rf RawFilter) toFilter() Filter {
 		return Filter{typ, "", s, false, lo, hi, s}
 	case UUID:
 		return Filter{typ, "", s, false, -1, -1, s}
-	case GROUP:
-		sp := strings.SplitN(s, ":", 2)
-		return Filter{typ, "group", sp[1], false, -1, -1, s}
 	case TAG:
 		isExcl := s[0] == '-'
 		return Filter{typ, s[0:1], s[1:], isExcl, -1, -1, s}
-	case CUSTOM:
+	case KV:
 		sp := strings.SplitN(s, ":", 2)
-		return Filter{typ, sp[0], sp[1], false, -1, -1, s}
+		if len(sp) != 2 {
+			sp = strings.SplitN(s, "=", 2)
+		}
+		k := unalias(sp[0])
+		if k == "group" {
+			return Filter{GROUP, k, sp[1], false, -1, -1, k + ":" + sp[1]}
+		}
+		return Filter{typ, k, sp[1], false, -1, -1, k + ":" + sp[1]}
 	default:
 		panic("unexpected type in RawFilter, likely code error")
 	}
 }
-
-// groupPrefixes are reserved prefixes to denote a GROUP filter. Any filter with a semi-colon not
-// in this list of prefixes will be considered CUSTOM
-var groupPrefixes = []string{"group:", "grp:", "project:", "proj:", "prj:", "groups:"}
 
 // baseFilter holds the RawFilter field and provides a string method to print it back out as a string
 type baseFilter struct {
@@ -331,10 +360,8 @@ func (filter RawFilter) getType() FilterType {
 	switch {
 	case filter.isTagType():
 		return TAG
-	case filter.isGroupType():
-		return GROUP
-	case filter.isCustomDataType():
-		return CUSTOM
+	case filter.isKVType():
+		return KV
 	case filter.isUUIDType():
 		return UUID
 	case filter.isRangeType():
@@ -351,27 +378,14 @@ func (filter RawFilter) isCompound() bool {
 	return strings.Contains(filter.String(), ",")
 }
 
-// isGroupType returns true if filter starts with "group:" or one of its aliases
-func (filter RawFilter) isGroupType() bool {
-	f := string(filter)
-	for _, prefix := range groupPrefixes {
-		if strings.HasPrefix(f, prefix) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // isTagType returns true if filter starts with + or -
 func (filter RawFilter) isTagType() bool {
 	return strings.HasPrefix(string(filter), "-") || strings.HasPrefix(string(filter), "+")
 }
 
-// isCustomDataType returns true if filter contains any ":"
-// NOTE: Run this after isGroupType if using in a switch case or if/else block as both will be true
-func (filter RawFilter) isCustomDataType() bool {
-	return strings.Contains(string(filter), ":")
+// isKVType returns true if filter contains any ":"
+func (filter RawFilter) isKVType() bool {
+	return strings.Contains(string(filter), ":") || strings.Contains(string(filter), "=")
 }
 
 // isUUIDType returns true if filter passes UUID validation

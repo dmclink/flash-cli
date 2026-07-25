@@ -39,13 +39,17 @@ func NewReviewCmd(a *app.App) *cobra.Command {
 				return fmt.Errorf("getting flashcards from db | %w", err)
 			}
 
-			// TODO:
-			// limit the card based on limit filter
-
 			if len(cards) == 0 {
 				fmt.Println("Nothing in this query to review. Try changing review settings or filters")
 				return nil
 			}
+			// TODO:
+			// limit the card based on limit filter
+			filterLimit, err := filters.Limit()
+			if err != nil {
+				return err
+			}
+			limit := a.Config.ResolveInt("default.review.limit", filterLimit, -1)
 
 			reviewMode, unparsedMods := removeMode(a.Args.Mods)
 
@@ -104,7 +108,11 @@ func NewReviewCmd(a *app.App) *cobra.Command {
 			}
 
 			cardCount := len(cards)
-			for i, card := range cards {
+			if limit <= 0 {
+				limit = cardCount
+			}
+			for i := 0; i < limit; i++ {
+				card := cards[i]
 				cardNum := i + 1
 				front, back, progress, err := renderer.Render(ctx, card, cardNum, cardCount, unparsedMods)
 				if err != nil {

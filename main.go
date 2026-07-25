@@ -29,7 +29,7 @@ func main() {
 
 	parsedArgs, err := parser.ParseArgs(os.Args, validCommands)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: parsing and validating args\n\n%v", err)
+		fmt.Fprintf(os.Stderr, "Error: parsing and validating args\n\n%v\n", err)
 		os.Exit(1)
 	}
 	// TODO: implement parsedArgs.CobraArgs() or something more readable and set os.Args to its return value
@@ -38,7 +38,7 @@ func main() {
 
 	a, err := app.NewApp(parsedArgs)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: initializing app\n\n%v", err)
+		fmt.Fprintf(os.Stderr, "Error: initializing app\n\n%v\n", err)
 		os.Exit(1)
 	}
 	defer a.Close()

@@ -244,6 +244,19 @@ func (c *Config) Resolve(key string, override string, systemFallback string) str
 	return systemFallback
 }
 
+func (c *Config) ResolveInt(key string, override int, systemFallback int) int {
+	if override > 0 {
+		return override
+	}
+
+	cfgVal := c.V.GetInt(key)
+	if cfgVal > 0 {
+		return cfgVal
+	}
+
+	return systemFallback
+}
+
 // SetTypedConfigValue parses a raw string CLI argument into its most appropriate
 // native Go type (int, bool, or string) and assigns it to the specified Viper key.
 // It modifies the active in-memory Viper registry but does not commit changes to

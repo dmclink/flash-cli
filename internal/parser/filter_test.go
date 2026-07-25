@@ -39,7 +39,7 @@ func TestParseFilters(t *testing.T) {
 		{
 			"compound custom",
 			args{ParsedArgs{Command: "review", Filters: []string{"baz:foo,bar"}, Mods: []string{}, OriginalInput: "group:foo,bar review"}},
-			[]Filter{{CUSTOM, "baz", "foo", false, -1, -1, "baz:foo"}, {CUSTOM, "baz", "bar", false, -1, -1, "baz:bar"}},
+			[]Filter{{KV, "baz", "foo", false, -1, -1, "baz:foo"}, {KV, "baz", "bar", false, -1, -1, "baz:bar"}},
 		},
 		{
 			"UUID starts with digit",
@@ -362,37 +362,6 @@ func TestRawFilter_isCompound(t *testing.T) {
 	}
 }
 
-func TestRawFilter_isGroupType(t *testing.T) {
-	tests := []struct {
-		name   string
-		filter RawFilter
-		want   bool
-	}{
-		{"group prefix", "group:foo", true},
-		{"grp prefix", "grp:foo", true},
-		{"groups prefix", "groups:foo", true},
-		{"project prefix", "project:foo", true},
-		{"proj prefix", "proj:foo", true},
-		{"prj prefix", "prj:foo", true},
-		{"group prefix compound", "group:foo,bar", true},
-		{"id", "1", false},
-		{"range", "5-10", false},
-		{"custom", "foo:bar", false},
-		{"+ tag", "+foo", false},
-		{"- tag", "-foo", false},
-		{"tag containing :", "+foo:bar", false},
-		{"uuid starts with digit", "0fb80f43-cb89-4d21-a5a1-7ef2995e7306", false},
-		{"uuid starts with alpha", "e3e9df30-bc8a-4458-af31-18fd437342fd", false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.filter.isGroupType(); got != tt.want {
-				t.Errorf("RawFilter.isGroupType() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRawFilter_isTagType(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -425,7 +394,7 @@ func TestRawFilter_isTagType(t *testing.T) {
 	}
 }
 
-func TestRawFilter_isCustomDataType(t *testing.T) {
+func TestRawFilter_isKVType(t *testing.T) {
 	tests := []struct {
 		name   string
 		filter RawFilter
@@ -435,7 +404,7 @@ func TestRawFilter_isCustomDataType(t *testing.T) {
 		{"custom compound", "foo:bar", true},
 		{"only :", ":", true},
 		// the following true tests result to true because of the simplistic implementation of
-		// isCustomDataType. it only checks for existence of a semicolon ':' character in the string
+		// isKVType. it only checks for existence of a semicolon ':' character in the string
 		// this is why it is imperative to rule out tags and groups before calling this function in production
 		{"tag containing :", "+foo:bar", true},
 		{"group prefix", "group:foo", true},
@@ -456,8 +425,8 @@ func TestRawFilter_isCustomDataType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.filter.isCustomDataType(); got != tt.want {
-				t.Errorf("RawFilter.isCustomDataType() = %v, want %v", got, tt.want)
+			if got := tt.filter.isKVType(); got != tt.want {
+				t.Errorf("RawFilter.isKVType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -653,7 +622,7 @@ func TestRawFilter_toFilter(t *testing.T) {
 		{"id filter", RawFilter("1"), Filter{ID, "", "1", false, 1, 1, "1"}},
 		{"range filter", RawFilter("5-100"), Filter{RANGE, "", "5-100", false, 5, 100, "5-100"}},
 		{"uuid filter", RawFilter("e3e9df30-bc8a-4458-af31-18fd437342fd"), Filter{UUID, "", "e3e9df30-bc8a-4458-af31-18fd437342fd", false, -1, -1, "e3e9df30-bc8a-4458-af31-18fd437342fd"}},
-		{"custom filter", RawFilter("foo:bar"), Filter{CUSTOM, "foo", "bar", false, -1, -1, "foo:bar"}},
+		{"custom filter", RawFilter("foo:bar"), Filter{KV, "foo", "bar", false, -1, -1, "foo:bar"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

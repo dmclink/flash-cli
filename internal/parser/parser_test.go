@@ -27,9 +27,9 @@ func TestIsFilter(t *testing.T) {
 		{"Invalid numbers", args{"14a"}, true}, // still resolve to true! this function doesnt check correctness, should fail ValidateFilter() check
 		{"Ends with :", args{"foo:"}, true},
 		{"Contains :", args{"foo:bar"}, true},
+		{"Contains =", args{"foo=bar"}, true},
 		{"Regular string", args{"Go is great!"}, false},
 		{"Filter like string with space", args{"elements:au gold"}, false},
-		// {"Contains delimiter", args{"elements:au::gold"}, false}, TODO: this will resolve to true in current implementation
 		{"Regular command", args{"add"}, false},
 		{"Command ending in number", args{"report3"}, false},
 		{"Contains +", args{"foo+bar"}, false},
@@ -40,7 +40,6 @@ func TestIsFilter(t *testing.T) {
 		// resolves to true because it starts with a number but will fail the ValidateFilter() check
 		{"Invalid UUID length starts with number", args{"525ea494-4ef4-4208-a9b-023207abb27"}, true},
 		{"Invalid UUID character starts with number", args{"525xz494-4yf4-4208-a9b8-023207abb2c7"}, true},
-		// resolves to false, rest of program treats it as a command instead of a filter
 		{"Invalid UUID length starts with letter", args{"b25ea494-4ef4-4208-a9b-023207abb27"}, false},
 		{"Invalid UUID character starts with letter", args{"b25xz494-4yf4-4208-a9b8-023207abb2c7"}, false},
 	}

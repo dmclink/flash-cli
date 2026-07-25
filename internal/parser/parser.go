@@ -68,7 +68,6 @@ func ParseArgs(args []string, commands map[string]bool) (ParsedArgs, error) {
 			OriginalInput: strings.Join(args, " "),
 		}
 	}
-	fmt.Println("FILTERS:", result.Filters)
 
 	err := ValidateFilters(result.Filters)
 	if err != nil {
@@ -82,9 +81,8 @@ func ParseArgs(args []string, commands map[string]bool) (ParsedArgs, error) {
 // Empty filters slice is considered valid
 func ValidateFilters(filters []string) error {
 	for _, filter := range filters {
-		fmt.Println("VALIDATING: ", filter)
 		if !IsFilter(filter) {
-			return fmt.Errorf("not a filter")
+			return fmt.Errorf("not a filter '%s'", filter)
 		}
 
 		err := ValidateFilter(filter)
@@ -117,7 +115,7 @@ func IsFilter(s string) bool {
 		return true
 	}
 
-	if strings.Contains(s, ":") {
+	if strings.Contains(s, ":") || strings.Contains(s, "=") {
 		return true
 	}
 
