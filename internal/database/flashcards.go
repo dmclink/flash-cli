@@ -121,12 +121,13 @@ func buildFlashcardSelectQuery(filters parser.SearchFilters) (string, []any) {
 	// NOTE: casting fTable as f we will use this throughout our query strings
 	baseQuery := fmt.Sprintf("SELECT\n\tf.id, f.uuid, f.last_review, f.front, f.back, f.created_at, json(f.ext_data)\nFROM\n\t%s f", fTable)
 
-	if filters.Size == 0 {
+	size := filters.Size()
+	if size == 0 {
 		return baseQuery + ";", []any{}
 	}
 
-	andStrings := make([]string, 0, filters.Size)
-	orStrings := make([]string, 0, filters.Size)
+	andStrings := make([]string, 0, size)
+	orStrings := make([]string, 0, size)
 	queryArgs := []any{}
 
 	for _, id := range filters.IDs {

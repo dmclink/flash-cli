@@ -632,3 +632,40 @@ func TestRawFilter_toFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestSearchFilters_Size(t *testing.T) {
+	type fields struct {
+		IDs    []Filter
+		Ranges []Filter
+		UUIDs  []Filter
+		Tags   []Filter
+		Groups []Filter
+		KVs    []Filter
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{"empty", fields{}, 0},
+		{"skips KVs", fields{KVs: []Filter{{}, {}, {}}}, 0},
+		{"one group", fields{Groups: []Filter{{Type: GROUP}}}, 1},
+		{"all fields have one", fields{[]Filter{{}}, []Filter{{}}, []Filter{{}}, []Filter{{}}, []Filter{{}}, []Filter{{}}}, 5},
+		{"multiple fields", fields{Groups: []Filter{{}, {}, {}}, Tags: []Filter{{}, {}}}, 5},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sf := &SearchFilters{
+				IDs:    tt.fields.IDs,
+				Ranges: tt.fields.Ranges,
+				UUIDs:  tt.fields.UUIDs,
+				Tags:   tt.fields.Tags,
+				Groups: tt.fields.Groups,
+				KVs:    tt.fields.KVs,
+			}
+			if got := sf.Size(); got != tt.want {
+				t.Errorf("SearchFilters.Size() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

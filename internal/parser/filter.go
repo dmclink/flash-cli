@@ -46,10 +46,21 @@ type SearchFilters struct {
 	Tags   []Filter
 	Groups []Filter
 	KVs    []Filter
-	Size   int
 }
 
-func (sf SearchFilters) Limit() (int, error) {
+func (sf *SearchFilters) Size() int {
+	result := 0
+	result += len(sf.IDs)
+	result += len(sf.Ranges)
+	result += len(sf.UUIDs)
+	result += len(sf.Tags)
+	result += len(sf.Groups)
+	// skipping KVs here on purpose because it is not used to build database search queries
+
+	return result
+}
+
+func (sf *SearchFilters) Limit() (int, error) {
 	result := -1
 	for _, f := range sf.KVs {
 		if f.Key == "limit" {
@@ -72,7 +83,6 @@ func NewSearchFilters(filters []Filter) SearchFilters {
 	result := SearchFilters{}
 	for _, filter := range filters {
 		typ := filter.Type
-		result.Size++
 		switch typ {
 		case ID:
 			result.IDs = append(result.IDs, filter)
@@ -90,7 +100,6 @@ func NewSearchFilters(filters []Filter) SearchFilters {
 			// I will likely handle them differently somewhere else, as such we don't want to increment size
 			// or it will cause an empty WHERE clause to be built
 			// If I instead include custom into the regular db search query then delete this line
-			result.Size--
 		default:
 			fmt.Println("unexpected type creating new search filter")
 			panic("code error")

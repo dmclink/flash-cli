@@ -104,13 +104,13 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 	}{
 		{
 			"no filters",
-			args{parser.SearchFilters{Size: 0}},
+			args{parser.SearchFilters{}},
 			fmt.Sprintf("SELECT\n\tf.id, f.uuid, f.last_review, f.front, f.back, f.created_at, f.ext_data\nFROM\n\t%s f;", constant.DATABASE_TABLE_FLASHCARDS),
 			[]any{},
 		},
 		{
 			"id filter",
-			args{parser.SearchFilters{Size: 1, IDs: []parser.Filter{
+			args{parser.SearchFilters{IDs: []parser.Filter{
 				{
 					Type:      parser.ID,
 					Key:       "",
@@ -129,7 +129,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"uuid filter",
-			args{parser.SearchFilters{Size: 1, UUIDs: []parser.Filter{
+			args{parser.SearchFilters{UUIDs: []parser.Filter{
 				{
 					Type:      parser.UUID,
 					Key:       "",
@@ -148,7 +148,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"multiple id filters",
-			args{parser.SearchFilters{Size: 3, IDs: []parser.Filter{
+			args{parser.SearchFilters{IDs: []parser.Filter{
 				{
 					Type:      parser.ID,
 					Key:       "",
@@ -185,7 +185,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"range filter",
-			args{parser.SearchFilters{Size: 1, Ranges: []parser.Filter{
+			args{parser.SearchFilters{Ranges: []parser.Filter{
 				{
 					Type:      parser.RANGE,
 					Key:       "",
@@ -204,7 +204,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"multiple range filters",
-			args{parser.SearchFilters{Size: 2, Ranges: []parser.Filter{
+			args{parser.SearchFilters{Ranges: []parser.Filter{
 				{
 					Type:      parser.RANGE,
 					Key:       "",
@@ -232,7 +232,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"group filter",
-			args{parser.SearchFilters{Size: 1, Groups: []parser.Filter{
+			args{parser.SearchFilters{Groups: []parser.Filter{
 				{
 					Type:      parser.GROUP,
 					Key:       "group",
@@ -251,7 +251,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"multiple group filters",
-			args{parser.SearchFilters{Size: 3, Groups: []parser.Filter{
+			args{parser.SearchFilters{Groups: []parser.Filter{
 				{
 					Type:      parser.GROUP,
 					Key:       "group",
@@ -288,7 +288,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"+ tag filter",
-			args{parser.SearchFilters{Size: 1, Tags: []parser.Filter{
+			args{parser.SearchFilters{Tags: []parser.Filter{
 				{
 					Type:      parser.TAG,
 					Key:       "+",
@@ -307,7 +307,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"- tag filter",
-			args{parser.SearchFilters{Size: 1, Tags: []parser.Filter{
+			args{parser.SearchFilters{Tags: []parser.Filter{
 				{
 					Type:      parser.TAG,
 					Key:       "-",
@@ -326,7 +326,7 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		},
 		{
 			"mixed tag filters",
-			args{parser.SearchFilters{Size: 3, Tags: []parser.Filter{
+			args{parser.SearchFilters{Tags: []parser.Filter{
 				{
 					Type:      parser.TAG,
 					Key:       "+",
@@ -364,7 +364,6 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 		{
 			"mixed un/mandated filters",
 			args{parser.SearchFilters{
-				Size: 2,
 				Groups: []parser.Filter{
 					{
 						Type:      parser.GROUP,
@@ -400,7 +399,6 @@ func Test_buildFlashcardSelectQuery(t *testing.T) {
 			"all mixed filters",
 			args{
 				parser.SearchFilters{
-					Size: 2,
 					IDs: []parser.Filter{
 						{
 							Type:      parser.ID,
