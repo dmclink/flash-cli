@@ -33,7 +33,7 @@ func NewReviewCmd(a *app.App) *cobra.Command {
 		// },
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			filters := parser.ParseSearchFilters(a.Args)
+			filters := parser.ParseSearchFilters(a.Config.V, a.Args)
 			cards, err := database.GetFlashcards(a.DB, filters)
 			if err != nil {
 				return fmt.Errorf("getting flashcards from db | %w", err)

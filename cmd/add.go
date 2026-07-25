@@ -42,7 +42,7 @@ func NewAddCmd(a *app.App) *cobra.Command {
 			front := splitMods[0]
 			back := splitMods[1]
 
-			filters := parser.ParseSearchFilters(a.Args)
+			filters := parser.ParseSearchFilters(a.Config.V, a.Args)
 
 			// TODO: extract plugin data from filters and pass them to AddFlashcard
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dmclink/flash-cli/internal/utils"
+	"github.com/spf13/viper"
 )
 
 type FilterType int
@@ -74,12 +75,12 @@ func (sf *SearchFilters) Limit() (int, error) {
 	return result, nil
 }
 
-func ParseSearchFilters(parsedArgs ParsedArgs) SearchFilters {
+func ParseSearchFilters(v *viper.Viper, parsedArgs ParsedArgs) SearchFilters {
 	filters := ParseFilters(parsedArgs)
-	return NewSearchFilters(filters)
+	return NewSearchFilters(v, filters)
 }
 
-func NewSearchFilters(filters []Filter) SearchFilters {
+func NewSearchFilters(v *viper.Viper, filters []Filter) SearchFilters {
 	result := SearchFilters{}
 	for _, filter := range filters {
 		typ := filter.Type
@@ -103,6 +104,41 @@ func NewSearchFilters(filters []Filter) SearchFilters {
 		default:
 			fmt.Println("unexpected type creating new search filter")
 			panic("code error")
+		}
+	}
+
+	splitFieldsAndCommas := func(s string) []string {
+		intermediate := strings.Fields(s)
+		result := []string{}
+		for _, i := range intermediate {
+			result = append(result, splitAtCommas(i)...)
+		}
+		return result
+	}
+
+	if len(result.Groups) == 0 {
+		configGroupString := v.GetString("default.filter.groups")
+		if configGroupString != "" {
+			// TODO: also split by ,
+			configGroups := splitFieldsAndCommas(configGroupString)
+
+			rfs := toRawFiltersWithPrefix(configGroups, "group:")
+			for _, rf := range rfs {
+				f := rf.toFilter()
+				result.Groups = append(result.Groups, f)
+			}
+		}
+	}
+	if len(result.Tags) == 0 {
+		configTagString := v.GetString("default.filter.tags")
+		if configTagString != "" {
+			configTags := splitFieldsAndCommas(configTagString)
+
+			rfs := toRawFiltersWithPrefix(configTags, "+")
+			for _, rf := range rfs {
+				f := rf.toFilter()
+				result.Tags = append(result.Tags, f)
+			}
 		}
 	}
 
@@ -130,7 +166,7 @@ type Filter struct {
 }
 
 func (f Filter) String() string {
-	return f.f
+	return fmt.Sprintf("Filter{%v %s %s %v %v %v %s}", f.Type, f.Key, f.Value, f.IsExclude, f.Low, f.High, f.f)
 }
 
 // IsMandated returns true if filter is a TAG type, all other types return false by default.

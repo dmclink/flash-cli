@@ -61,6 +61,11 @@ func TestParseFilters(t *testing.T) {
 			args{ParsedArgs{Command: "review", Filters: []string{"-foo"}, Mods: []string{}, OriginalInput: "-foo review"}},
 			[]Filter{{TAG, "-", "foo", true, -1, -1, "-foo"}},
 		},
+		{
+			"limit",
+			args{ParsedArgs{Command: "review", Filters: []string{"limit=10", "lim=100"}, Mods: []string{}, OriginalInput: "limit=10 lim=100 review"}},
+			[]Filter{{KV, "limit", "10", false, -1, -1, "limit:10"}, {KV, "limit", "100", false, -1, -1, "limit:100"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -80,22 +85,18 @@ func TestParseFilters(t *testing.T) {
 }
 
 func TestFilter_String(t *testing.T) {
-	type fields struct {
-		f string
-	}
 	tests := []struct {
 		name   string
-		fields fields
+		filter Filter
 		want   string
 	}{
-		{"empty string", fields{""}, ""},
-		{"valid filter", fields{"group:foo"}, "group:foo"},
+		{"empty string", Filter{KV, "", "", false, -1, -1, ":"}, "Filter{5   false -1 -1 :}"},
+		{"valid filter", Filter{RANGE, "", "", false, 4, 10, "4-10"}, "Filter{1   false 4 10 4-10}"},
+		{"valid filter", Filter{GROUP, "group", "foo", false, -1, -1, "group:foo"}, "Filter{4 group foo false -1 -1 group:foo}"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := Filter{
-				f: tt.fields.f,
-			}
+			f := tt.filter
 			if got := f.String(); got != tt.want {
 				t.Errorf("Filter.String() = %v, want %v", got, tt.want)
 			}
