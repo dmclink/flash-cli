@@ -20,6 +20,7 @@ func main() {
 
 	structuralRoot := cmd.NewRootCmd(nil)
 	validCommands := make(map[string]bool)
+	validCommands["help"] = true
 	for _, c := range structuralRoot.Commands() {
 		validCommands[c.Name()] = true
 		for _, alias := range c.Aliases {
