@@ -59,8 +59,15 @@ Available plugin capabalities which you can create to alter behavior
 2. write a `NewNameCmd(a *app.App) *cobra.Command` factory function
 3. Write concise Short and Long descriptions
     - these are used to fill in templates, short needs to be especially..short
-4. add Annotations field if the command uses either <mods> or <filter>
-    - annotations are used to generate the root command's help template
+4. Disable Flag parsing (field) set to true
+5. Check requirements for filters and general syntax in PreRunE
+6. add Annotations field if the command uses either <mods> or <filter>
+    - ie. `"modsyntax" : <mods>` - usually just <mods> but allows us to have different mod syntax like "[key] [value]"
+    - ie. `"filter" : "true"` - automatically fills in "<filter>" before the command in templates
+    - annotations are used to generate the root command's help template (no need to add new command manually there)
     - they can also be used to generate usage strings in this command's template if lazy to type again
-5. before returning the command from the factory func, set the UsageFunc and HelpFunc (or templates)
-6. write the usage and help str/templates as global vars at the bottom of file. Watch for naming conflicts
+7. before returning the command from the factory func, set the UsageFunc and HelpFunc (or templates)
+8. write the usage and help str/templates as global vars at the bottom of file. Watch for naming conflicts
+    - templates are largely copyable from `edit` command's templates
+    - still need to update help templtae's CONIGURATION MODS FILTERS and EXAMPLES headers
+9. write a new AddCommand in `root.go`

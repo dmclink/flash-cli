@@ -31,6 +31,7 @@ func main() {
 	parsedArgs, err := parser.ParseArgs(os.Args, validCommands)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: parsing and validating args\n\n%v\n", err)
+		// TODO:
 		os.Exit(1)
 	}
 	// TODO: implement parsedArgs.CobraArgs() or something more readable and set os.Args to its return value
@@ -50,9 +51,6 @@ func main() {
 
 	err = rootCmd.ExecuteContext(ctx)
 	if err != nil {
-		rootCmd.Printf("Error %v\n", err)
-		fmt.Println()
-		rootCmd.Usage()
 		os.Exit(1)
 	}
 }

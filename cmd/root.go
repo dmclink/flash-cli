@@ -25,11 +25,7 @@ func NewRootCmd(a *app.App) *cobra.Command {
 	rootCmd.AddCommand(NewAddCmd(a))
 	rootCmd.AddCommand(NewReviewCmd(a))
 	rootCmd.AddCommand(NewConfigCmd(a))
-
-	helpCmd, _, err := rootCmd.Find([]string{"help"})
-	if err == nil && helpCmd != nil {
-		helpCmd.Hidden = false
-	}
+	rootCmd.AddCommand(NewEditCmd(a))
 
 	cobra.AddTemplateFunc("maxSubPadding", maxSubPadding)
 	cobra.AddTemplateFunc("buildSubSyntax", func(sub *cobra.Command) string {
@@ -38,9 +34,6 @@ func NewRootCmd(a *app.App) *cobra.Command {
 		}
 		return sub.Name()
 	})
-
-	rootCmd.SilenceUsage = true
-	rootCmd.SilenceErrors = true
 
 	// TODO: delete this line after implementing completions
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -183,10 +176,23 @@ The 'review' command requires zero or more mods:
 DEFAULT COMMAND
 By default, running this program without any command will run the review command
   flash-cli       =  flash-cli review
+
 Any tokens found after flash-cli will be treated as filters. This is to allow users
 to quickly review select groups.
   flash-cli group:programming     will run review on all 'programming' cards
+
 Filter parsing behavior makes it impossible to set an alternate mode on the default command.
   flash-cli mode=shuffle          reviews all cards, with a custom 'mode' filter ignored
+
 Those attributes can be set with 'config' so the default command runs the desired mode.
 `
+
+var universalUsageTemplate = `flash-cli {{.Name}} - {{.Short}}
+
+SYNTAX ERROR
+  Invalid configuration or syntax provided
+
+USAGE
+  flash-cli {{if .Annotations.filter}}<filter> {{else}}         {{end -}}{{.Name}}{{if .Annotations.modsyntax}} <mods>{{end}}
+
+Run 'flash-cli help {{.Name}}' for a detailed list of available options'`

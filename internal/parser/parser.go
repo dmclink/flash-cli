@@ -45,11 +45,6 @@ func (args ParsedArgs) CobraArgs() []string {
 func ParseArgs(args []string, commands map[string]bool) (ParsedArgs, error) {
 	cmd, idx := FindCommand(args, commands)
 
-	// reorderedArgs, modsStartIdx, err := reorder(args)
-	// if err != nil {
-	// 	return ParsedArgs{}, err
-	// }
-
 	var result ParsedArgs
 	if idx == -1 {
 		result = ParsedArgs{
@@ -156,7 +151,7 @@ func ValidateFilter(s string) error {
 			for idFilter := range strings.SplitSeq(idFilterAndRanges, "-") {
 				_, err := strconv.Atoi(idFilter)
 				if err != nil {
-					return fmt.Errorf("Invalid numerical filter")
+					return fmt.Errorf("Invalid numerical filter '%s'", idFilter)
 				}
 			}
 		}
