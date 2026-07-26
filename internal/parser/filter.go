@@ -116,10 +116,9 @@ func NewSearchFilters(v *viper.Viper, filters []Filter) SearchFilters {
 		return result
 	}
 
-	if len(result.Groups) == 0 {
+	if result.Size() == 0 {
 		configGroupString := v.GetString("default.filter.groups")
 		if configGroupString != "" {
-			// TODO: also split by ,
 			configGroups := splitFieldsAndCommas(configGroupString)
 
 			rfs := toRawFiltersWithPrefix(configGroups, "group:")
@@ -128,8 +127,7 @@ func NewSearchFilters(v *viper.Viper, filters []Filter) SearchFilters {
 				result.Groups = append(result.Groups, f)
 			}
 		}
-	}
-	if len(result.Tags) == 0 {
+
 		configTagString := v.GetString("default.filter.tags")
 		if configTagString != "" {
 			configTags := splitFieldsAndCommas(configTagString)
