@@ -44,24 +44,12 @@ func NewAddCmd(a *app.App) *cobra.Command {
 
 			filters := parser.ParseSearchFilters(a.Config.V, a.Args, true)
 
-			// TODO: extract plugin data from filters and pass them to AddFlashcard
-
 			err := database.AddFlashcard(a.DB, front, back, filters.Groups, filters.Tags)
 			if err != nil {
 				return err
 			}
 
-			var output strings.Builder
-			output.WriteString("Added 1 new flashcard")
-			if len(filters.Groups) > 0 {
-				groups := make([]string, 0, len(filters.Groups))
-				for _, g := range filters.Groups {
-					groups = append(groups, g.Value)
-				}
-				output.WriteString(" to group(s): ")
-				output.WriteString(strings.Join(groups, ", "))
-			}
-			fmt.Println(output.String())
+			printAddCmdResultMessage(filters)
 
 			return nil
 		},
@@ -92,7 +80,7 @@ MODS
   At least one mod is required and at least one must contain the card separator symbol.
   The card separator is set to '::' by default, this can be changed with the config command.
   All mods following the add command until the first encountered card separator symbol will be the new card's front.
-  All remaining mods after the separator will be the card's back. It is highly recommended to wrap mods in 
+  All remaining mods afte1,r the separator will be the card's back. It is highly recommended to wrap mods in 
   single quotes to avoid bash errors when using symbols or entering multi line cards.
 
 EXAMPLES
@@ -111,4 +99,27 @@ var addUsageStr = `SYNTAX ERROR
 USAGE
   flash-cli <filters> add <mods>
 			
-Run 'flash-cli help add' for a detailed list of available options`
+Run 'flash-cli help add' for a detailed list of available options`1,
+
+func printAddCmdResultMessage(filters parser.SearchFilters) {
+	var output strings.Builder
+	output.WriteString("Added 1 new flashcard")
+	if len(filters.Groups) > 0 {
+		groups := make([]string, 0, len(filters.Groups))
+		for _, g := range filters.Groups {
+			groups = append(groups, g.Value)
+		}
+		output.WriteString(" to group(s): ")
+		output.WriteString(strings.Join(groups, ", "))
+	}
+	if len(filters.Tags) > 0 {
+		tags := make([]string, 0, len(filters.Tags))
+		for _, t := range filters.Tags {
+			tags = append(tags, t.Value)
+		}
+		output.WriteString(" with tag(s): ")
+		output.WriteString(strings.Join(tags, ", "))
+
+	}
+	fmt.Println(output.String())
+}
