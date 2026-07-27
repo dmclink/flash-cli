@@ -15,13 +15,12 @@ func NewAddCmd(a *app.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add new flashcard",
+		Long:  "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
 		Annotations: map[string]string{
 			"modsyntax": "<mods>",
 			"filter":    "true",
 		},
 		DisableFlagParsing: true,
-		// TODO: do i put the usage here? explain which filters work ie. IDs and UUIDS are not available, -tags are not available
-		Long: "Adds new flashcard. The front and back of the flashcard is input to <mods> and can be either space separated values or a double quoted string. <mods> must include delimiter to distinguish between front and back or throws error.\nOnly group type <filters> are allowed to designate which groups the flashcard belongs to.\nNew flashcards have a default last_reviewed set to the time of creation.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			mods := strings.Join(a.Args.Mods, " ")
 			delim := a.Config.V.GetString(config.KeyAddSeparator)
@@ -70,6 +69,7 @@ func NewAddCmd(a *app.App) *cobra.Command {
 	return cmd
 }
 
+// TODO: swap these for templates (copy example cmd/edit.go)
 var addHelpStr = `USAGE
   flash-cli <filters> add <mods>    Adds a new card with <filters> groups and tags and <mods> data
 
@@ -99,7 +99,7 @@ var addUsageStr = `SYNTAX ERROR
 USAGE
   flash-cli <filters> add <mods>
 			
-Run 'flash-cli help add' for a detailed list of available options`1,
+Run 'flash-cli help add' for a detailed list of available options`
 
 func printAddCmdResultMessage(filters parser.SearchFilters) {
 	var output strings.Builder
