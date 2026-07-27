@@ -75,12 +75,50 @@ func (sf *SearchFilters) Limit() (int, error) {
 	return result, nil
 }
 
-func ParseSearchFilters(v *viper.Viper, parsedArgs ParsedArgs) SearchFilters {
+func ParseSearchFilters(v *viper.Viper, parsedArgs ParsedArgs, usesDefaultFilters bool) SearchFilters {
 	filters := ParseFilters(parsedArgs)
-	return NewSearchFilters(v, filters)
+	return NewSearchFilters(v, filters, usesDefaultFilters)
 }
 
-func NewSearchFilters(v *viper.Viper, filters []Filter) SearchFilters {
+func (sf SearchFilters) CanOverrideGroups() bool {
+	return len(sf.IDs)+len(sf.UUIDs)+len(sf.Ranges)+len(sf.Groups) == 0
+}
+
+func (sf SearchFilters) CanOverrideTags() bool {
+	return sf.Size() == 0
+}
+
+func splitFieldsAndCommas(s string) []string {
+	intermediate := strings.Fields(s)
+	result := []string{}
+	for _, i := range intermediate {
+		result = append(result, splitAtCommas(i)...)
+	}
+	return result
+}
+
+func overrideSetting(v *viper.Viper, cfgKey string, prefix string, targetSlice *[]Filter) {
+	configString := v.GetString(cfgKey)
+	if configString != "" {
+		configs := splitFieldsAndCommas(configString)
+		rfs := toRawFiltersWithPrefix(configs, prefix)
+		newFilters := make([]Filter, 0, len(rfs))
+		for _, rf := range rfs {
+			newFilters = append(newFilters, rf.toFilter())
+		}
+		*targetSlice = append(*targetSlice, newFilters...)
+	}
+}
+
+func (sf *SearchFilters) TryOverrideGroups(v *viper.Viper) {
+	overrideSetting(v, "default.filter.groups", "group:", &sf.Groups)
+}
+
+func (sf *SearchFilters) TryOverrideTags(v *viper.Viper) {
+	overrideSetting(v, "default.filter.tags", "+", &sf.Tags)
+}
+
+func NewSearchFilters(v *viper.Viper, filters []Filter, usesDefaultFilters bool) SearchFilters {
 	result := SearchFilters{}
 	for _, filter := range filters {
 		typ := filter.Type
@@ -107,36 +145,13 @@ func NewSearchFilters(v *viper.Viper, filters []Filter) SearchFilters {
 		}
 	}
 
-	splitFieldsAndCommas := func(s string) []string {
-		intermediate := strings.Fields(s)
-		result := []string{}
-		for _, i := range intermediate {
-			result = append(result, splitAtCommas(i)...)
-		}
-		return result
-	}
-
-	if result.Size() == 0 {
-		configGroupString := v.GetString("default.filter.groups")
-		if configGroupString != "" {
-			configGroups := splitFieldsAndCommas(configGroupString)
-
-			rfs := toRawFiltersWithPrefix(configGroups, "group:")
-			for _, rf := range rfs {
-				f := rf.toFilter()
-				result.Groups = append(result.Groups, f)
-			}
+	if usesDefaultFilters {
+		if result.CanOverrideGroups() {
+			result.TryOverrideGroups(v)
 		}
 
-		configTagString := v.GetString("default.filter.tags")
-		if configTagString != "" {
-			configTags := splitFieldsAndCommas(configTagString)
-
-			rfs := toRawFiltersWithPrefix(configTags, "+")
-			for _, rf := range rfs {
-				f := rf.toFilter()
-				result.Tags = append(result.Tags, f)
-			}
+		if result.CanOverrideTags() {
+			result.TryOverrideTags(v)
 		}
 	}
 

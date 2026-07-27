@@ -136,6 +136,79 @@ Valid:
 Invalid
   flash-cli 1,group:foo,10       review
 
+DEFAULT FILTERS
+Default filters are applied to most commands unless overridden to reduce repetitive typing
+and "batch" adds while working on a project. Notable exceptions such as 'flash-cli edit'
+which requires cards explicitly to be targetted don't apply default filters regardless
+the config setting. The final filter selection will be deteremined by the manually applied 
+filters and the default configs which may be dropped due to one of the manually applied 
+filter's precedence. Precedence is determined by the filter type's specificity seen below.
+
+Specifity: [IDs, Ranges, UUIDs] > Groups > Tags.
+
+The reason for this behavior is for users to be able to apply a default group and/or tags 
+while adding cards, while occasionally an added card might need a different tag.
+A user manually entering different group however is assumed to want no default tags.
+A user explicitly targetting an id, uuid, or a range of ids, is assumed to want only those
+specific cards that are being targetted.
+
+  CONFIGURATION
+    default.filter.groups
+	  Comma separated list of default groups.
+	  Example: 'default.filter.groups foo,bar'
+	default.filter.tags
+	  Comma separated list of default tags without prefix. 
+	  Only positive '+' tags can be applied.
+	  Example: 'default.filter.tags hard,medium'
+
+  EXAMPLES
+	The following example commands are not independent, where each preceding commands,
+	especially the settings, will affect all following commands.
+
+	ALTERING SETTINGS
+	flash-cli config default.filter.groups programming
+	  sets the default group to be programming
+	flash-cli config default.filter.tags hard
+	  sets the default tags to be hard
+
+	ADDING CARDS TO DEFAULT GROUP
+	flash-cli add some new::card
+	  adds a new card belonging to 'programming' group with a 'hard' tag
+	flash-cli add another new::card
+	  adds a card to 'programming' group with a 'hard' tag
+	flash-cli +easy add some easy::card
+	  adds a card to the 'programming' group with an 'easy' tag
+
+	ADDING CARDS TO EXPLICIT GROUP
+	flash-cli group:physics add some nerdy::card
+	  adds a card to the 'physics' group. Note: default tag not applied because group precedence
+	flash-cli group:physics +medium add a tricky nerdy::card
+	  adds a card to the 'physics' group. Note: explicit 'medium' tag applied
+	flash-cli group:physics +hard add some super nerdy::card
+	  adds a card to the 'physics' group. Note: need to explicitly apply 'hard' tag
+
+	REVIEWING CARDS
+	flash-cli review
+	  starts a review session of all 'programming' cards with 'hard' tag
+	  Note: Two cards (the ones with hard tag) will be pulled for review here.
+	flash-cli +hard review
+	  starts a review session of all 'programming' cards without 'hard' tag
+	  Note: Same as above. the 'hard' tag physics card is not pulled for review
+	        due to default 'programming' group being applied
+	flash-cli -hard review
+	  starts a review session of all 'programming' cards without 'hard' tag
+	  Note: one card (with the easy tag) will be pulled for review here.
+	flash-cli group:physics review
+	  starts a review session of all 'physics' cards. Default tag not applied
+	  Note: Three cards (all physics cards with any tags) will be pulled for review.
+	        The default 'hard' tag is dropped due to explicit group specificity
+	flash-cli 1 review
+	  only reviews card with id=1 default groups and tags are dropped due to id specificty
+
+	EDITING CARDS
+	flash-cli edit
+	  throws an error, defaults are ignored and this command needs any explicit tag applied
+
 MODS
 The <mods> are any tokens following a valid command. Mods are parsed differently depending
 on the individual command that was called. Check under the command in question's help text 

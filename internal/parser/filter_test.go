@@ -543,46 +543,6 @@ func TestRawFilter_isIDType(t *testing.T) {
 	}
 }
 
-func TestParseSearchFilters(t *testing.T) {
-	type args struct {
-		parsedArgs ParsedArgs
-	}
-	tests := []struct {
-		name string
-		args args
-		want SearchFilters
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseSearchFilters(tt.args.parsedArgs); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseSearchFilters() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNewSearchFilters(t *testing.T) {
-	type args struct {
-		filters []Filter
-	}
-	tests := []struct {
-		name string
-		args args
-		want SearchFilters
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewSearchFilters(tt.args.filters); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewSearchFilters() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestFilter_IsMandated(t *testing.T) {
 	type fields struct {
 		Type FilterType
