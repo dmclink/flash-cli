@@ -20,6 +20,7 @@ type Config struct {
 
 const (
 	KeyAddSeparator          = "add.separator"
+	KeyDefaultEditor         = "default.editor"
 	KeyDefaultFilterGroup    = "default.filter.groups"
 	KeyDefaultFilterTag      = "default.filter.tags"
 	KeyDefaultReviewMode     = "default.review.mode"
@@ -84,6 +85,7 @@ func setInitDefaults(v *viper.Viper) error {
 	v.SetDefault(KeyPathPluginsDir, filepath.Join(defaultConfigDir, "plugins"))
 	v.SetDefault(KeyPathLogsDir, filepath.Join(home, ".local", "state", constant.APP_NAME, "plugins.log"))
 
+	v.SetDefault(KeyDefaultEditor, "")
 	v.SetDefault(KeyDefaultFilterGroup, "")
 	v.SetDefault(KeyDefaultFilterTag, "")
 	v.SetDefault(KeyDefaultReviewMode, "")

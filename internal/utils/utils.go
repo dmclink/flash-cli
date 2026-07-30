@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -21,4 +22,32 @@ func IsValidUUID(s string) bool {
 	}
 
 	return false
+}
+
+func SplitFieldsAndCommas(s string) []string {
+	intermediate := strings.Fields(s)
+	result := []string{}
+	for _, i := range intermediate {
+		result = append(result, SplitAtCommas(i)...)
+	}
+	return result
+}
+
+// splitAtCommas delimits a string by commas and removes duplicate values
+//
+// NOTE: order is not maintained
+func SplitAtCommas(s string) []string {
+	sp := strings.Split(s, ",")
+
+	m := make(map[string]bool, len(sp))
+	for _, ss := range sp {
+		m[ss] = true
+	}
+
+	result := make([]string, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+
+	return result
 }

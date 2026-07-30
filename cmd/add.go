@@ -43,12 +43,12 @@ func NewAddCmd(a *app.App) *cobra.Command {
 
 			filters := parser.ParseSearchFilters(a.Config.V, a.Args, true)
 
-			err := database.AddFlashcard(a.DB, front, back, filters.Groups, filters.Tags)
+			id, err := database.AddFlashcard(a.DB, front, back, filters.Groups, filters.Tags)
 			if err != nil {
 				return err
 			}
 
-			printAddCmdResultMessage(filters)
+			printAddCmdResultMessage(id, filters)
 
 			return nil
 		},
@@ -101,9 +101,9 @@ USAGE
 			
 Run 'flash-cli help add' for a detailed list of available options`
 
-func printAddCmdResultMessage(filters parser.SearchFilters) {
+func printAddCmdResultMessage(id int, filters parser.SearchFilters) {
 	var output strings.Builder
-	output.WriteString("Added 1 new flashcard")
+	output.WriteString(fmt.Sprintf("Added 1 new flashcard id: %d", id))
 	if len(filters.Groups) > 0 {
 		groups := make([]string, 0, len(filters.Groups))
 		for _, g := range filters.Groups {

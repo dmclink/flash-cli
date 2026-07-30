@@ -9,3 +9,9 @@ type Flashcard struct {
 	CreatedAt  int    `db:"created_at"`
 	ExtData    []byte `db:"ext_data"`
 }
+
+type FullFlashcard struct {
+	Flashcard
+	Groups []string
+	Tags   []string
+}

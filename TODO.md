@@ -59,3 +59,4 @@ flash-cli <filter>  search      <mods>  Search for existing cards
 - [ ] hidden command generate-docs which populates man pages from root command help string
 - [ ] go releaser for builds
 - [ ] github actions/workflow macOS runners to test if download install works
+- [ ] reversible cards

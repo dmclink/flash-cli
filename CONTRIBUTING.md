@@ -71,3 +71,4 @@ Available plugin capabalities which you can create to alter behavior
     - templates are largely copyable from `edit` command's templates
     - still need to update help templtae's CONIGURATION MODS FILTERS and EXAMPLES headers
 9. write a new AddCommand in `root.go`
+10. if any new configs are required create a new const key and add them to `config/config.go` in `setInitDefaults`

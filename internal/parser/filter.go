@@ -88,19 +88,10 @@ func (sf SearchFilters) CanOverrideTags() bool {
 	return sf.Size() == 0
 }
 
-func splitFieldsAndCommas(s string) []string {
-	intermediate := strings.Fields(s)
-	result := []string{}
-	for _, i := range intermediate {
-		result = append(result, splitAtCommas(i)...)
-	}
-	return result
-}
-
 func overrideSetting(v *viper.Viper, cfgKey string, prefix string, targetSlice *[]Filter) {
 	configString := v.GetString(cfgKey)
 	if configString != "" {
-		configs := splitFieldsAndCommas(configString)
+		configs := utils.SplitFieldsAndCommas(configString)
 		rfs := toRawFiltersWithPrefix(configs, prefix)
 		newFilters := make([]Filter, 0, len(rfs))
 		for _, rf := range rfs {
@@ -333,25 +324,6 @@ type compoundCustomFilter struct {
 	baseFilter
 }
 
-// splitAtCommas delimits a string by commas and removes duplicate values
-//
-// NOTE: order is not maintained
-func splitAtCommas(s string) []string {
-	sp := strings.Split(s, ",")
-
-	m := make(map[string]bool, len(sp))
-	for _, ss := range sp {
-		m[ss] = true
-	}
-
-	result := make([]string, 0, len(m))
-	for k := range m {
-		result = append(result, k)
-	}
-
-	return result
-}
-
 // toRawFiltersWithPrefix adds prefix to each string in filters and casts them into RawFilters
 func toRawFiltersWithPrefix(filters []string, prefix string) []RawFilter {
 	result := make([]RawFilter, 0, len(filters))
@@ -368,7 +340,7 @@ func toRawFiltersWithPrefix(filters []string, prefix string) []RawFilter {
 func (f compoundGroupFilter) split() []RawFilter {
 	sp := strings.Split(f.String(), ":")
 	prefix := "group:" // lose aliases ie. "grp" "project" here but it shouldnt matter
-	filters := splitAtCommas(sp[1])
+	filters := utils.SplitAtCommas(sp[1])
 
 	return toRawFiltersWithPrefix(filters, prefix)
 }
@@ -378,7 +350,7 @@ func (f compoundGroupFilter) split() []RawFilter {
 //
 // NOTE: order is not maintained
 func (f compoundIDFilter) split() []RawFilter {
-	return toRawFiltersWithPrefix(splitAtCommas(f.String()), "")
+	return toRawFiltersWithPrefix(utils.SplitAtCommas(f.String()), "")
 }
 
 // split maintains the tag prefix ('+' or '-') and splits the tags at the commas.
@@ -389,7 +361,7 @@ func (f compoundTagFilter) split() []RawFilter {
 	prefix := f.String()[:1]
 	s := f.String()[1:]
 
-	filters := splitAtCommas(s)
+	filters := utils.SplitAtCommas(s)
 
 	return toRawFiltersWithPrefix(filters, prefix)
 }
@@ -402,7 +374,7 @@ func (f compoundTagFilter) split() []RawFilter {
 func (f compoundCustomFilter) split() []RawFilter {
 	sp := strings.Split(f.String(), ":")
 	prefix := sp[0] + ":"
-	filters := splitAtCommas(sp[1])
+	filters := utils.SplitAtCommas(sp[1])
 
 	return toRawFiltersWithPrefix(filters, prefix)
 }

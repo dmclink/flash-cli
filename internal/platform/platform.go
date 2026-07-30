@@ -46,6 +46,24 @@ func setOS() {
 	}
 }
 
+func EditorFallback() string {
+	if editor := os.Getenv("VISUAL"); editor != "" {
+		return editor
+	}
+	if editor := os.Getenv("EDITOR"); editor != "" {
+		return editor
+	}
+
+	switch {
+	case IsLinux(), IsMacOS():
+		return "vi"
+	case IsWindows():
+		return "notepad"
+	default:
+		return ""
+	}
+}
+
 func DataDirectory() (string, error) {
 	var result string
 	switch {
