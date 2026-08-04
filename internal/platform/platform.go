@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/dmclink/flash-cli/internal/constant"
 )
 
 type OSFlag uint8
@@ -15,10 +17,36 @@ const (
 	UNKNOWN
 )
 
-var platform OSFlag
+var (
+	platform OSFlag
 
-func init() {
+	dataDir    string
+	pluginsDir string
+	logsDir    string
+	configsDir string
+)
+
+func Init() error {
 	setOS()
+
+	// order matters for these
+	err := setConfigsDir()
+	if err != nil {
+		return err
+	}
+	err = setDataDir()
+	if err != nil {
+		return err
+	}
+	err = setPluginsDir()
+	if err != nil {
+		return err
+	}
+	err = setLogsDir()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func IsLinux() bool {
@@ -33,17 +61,20 @@ func IsMacOS() bool {
 	return platform&MACOS != 0
 }
 
-func setOS() {
-	switch runtime.GOOS {
-	case "linux":
-		platform |= LINUX
-	case "windows":
-		platform |= WINDOWS
-	case "darwin":
-		platform |= MACOS
-	default:
-		platform |= UNKNOWN
-	}
+func ConfigsDir() string {
+	return configsDir
+}
+
+func DataDir() string {
+	return dataDir
+}
+
+func LogsDir() string {
+	return logsDir
+}
+
+func PluginsDir() string {
+	return pluginsDir
 }
 
 func EditorFallback() string {
@@ -64,7 +95,84 @@ func EditorFallback() string {
 	}
 }
 
-func DataDirectory() (string, error) {
+func setOS() {
+	switch runtime.GOOS {
+	case "linux":
+		platform |= LINUX
+	case "windows":
+		platform |= WINDOWS
+	case "darwin":
+		platform |= MACOS
+	default:
+		platform |= UNKNOWN
+	}
+}
+
+func setPluginsDir() error {
+	dataDir := DataDir()
+	result := filepath.Join(dataDir, "plugins")
+
+	err := os.MkdirAll(result, 0o755)
+	if err != nil {
+		return err
+	}
+
+	pluginsDir = result
+	return nil
+}
+
+func setLogsDir() error {
+	var result string
+	switch {
+	case IsLinux():
+		logDir := os.Getenv("XDG_CACHE_HOME")
+		if logDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return err
+			}
+			result = filepath.Join(home, ".cache")
+		} else {
+			result = logDir
+		}
+	case IsMacOS():
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		result = filepath.Join(home, "Library", "Logs")
+	default:
+		result = ConfigsDir()
+	}
+
+	result = filepath.Join(result, constant.APP_NAME)
+
+	err := os.MkdirAll(result, 0o755)
+	if err != nil {
+		return err
+	}
+
+	logsDir = result
+	return nil
+}
+
+func setConfigsDir() error {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	result := filepath.Join(dir, constant.APP_NAME)
+
+	err = os.MkdirAll(result, 0o755)
+	if err != nil {
+		return err
+	}
+	configsDir = result
+	return nil
+}
+
+func setDataDir() error {
 	var result string
 	switch {
 	case IsLinux():
@@ -72,15 +180,23 @@ func DataDirectory() (string, error) {
 		if dataDir == "" {
 			home, err := os.UserHomeDir()
 			if err != nil {
-				return "", err
+				return err
 			}
 			result = filepath.Join(home, ".local", "share")
 		} else {
 			result = dataDir
 		}
 	default:
-		return os.UserConfigDir()
+		result = ConfigsDir()
 	}
 
-	return result, nil
+	result = filepath.Join(result, constant.APP_NAME)
+
+	err := os.MkdirAll(result, 0o755)
+	if err != nil {
+		return err
+	}
+
+	dataDir = result
+	return nil
 }

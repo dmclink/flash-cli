@@ -2,21 +2,16 @@ package database
 
 import (
 	"database/sql"
-	"os"
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
 
-	"github.com/dmclink/flash-cli/internal/constant"
 	"github.com/dmclink/flash-cli/internal/platform"
 )
 
 // Open opens sqlite database at path appropriate for user's operating system
 func Open() (*sql.DB, error) {
-	path, err := DatabasePath()
-	if err != nil {
-		return nil, err
-	}
+	path := DatabasePath()
 
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -37,19 +32,8 @@ func Init(db *sql.DB) error {
 	return nil
 }
 
-func DatabasePath() (string, error) {
-	dataDir, err := platform.DataDirectory()
-	if err != nil {
-		return "", err
-	}
+func DatabasePath() string {
+	dataDir := platform.DataDir()
 
-	appDir := filepath.Join(dataDir, constant.APP_NAME)
-	os.UserConfigDir()
-
-	err = os.MkdirAll(appDir, 0o755)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(dataDir, constant.APP_NAME, "app.db"), nil
+	return filepath.Join(dataDir, "app.db")
 }

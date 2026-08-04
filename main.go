@@ -10,11 +10,18 @@ import (
 	"github.com/dmclink/flash-cli/cmd"
 	"github.com/dmclink/flash-cli/internal/app"
 	"github.com/dmclink/flash-cli/internal/parser"
+	"github.com/dmclink/flash-cli/internal/platform"
 )
 
 func main() {
 	if os.Getuid() == 0 {
 		fmt.Fprintln(os.Stderr, "Error: do not run this application as root/sudo")
+		os.Exit(1)
+	}
+
+	err := platform.Init()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: initializing directories | %v", err)
 		os.Exit(1)
 	}
 

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dmclink/flash-cli/internal/constant"
+	"github.com/dmclink/flash-cli/internal/platform"
 	"github.com/spf13/viper"
 )
 
@@ -27,7 +27,7 @@ const (
 	KeyDefaultReviewRenderer = "default.review.renderer"
 	KeyDefaultReviewLimit    = "default.review.limit"
 	KeyPathPluginsDir        = "path.plugins_dir"
-	KeyPathLogsDir           = "path.logs_dir"
+	KeyPathPluginsLogs       = "path.plugins_logs"
 )
 
 func InitConfig() (*Config, error) {
@@ -37,21 +37,11 @@ func InitConfig() (*Config, error) {
 		return nil, fmt.Errorf("setting config defaults | %w", err)
 	}
 
-	var configPath string
-
-	if envPath := os.Getenv("FLASH_CLI_CONFIG_DIR"); envPath != "" {
-		configPath = envPath
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to find home directory for os | %w", err)
-		}
-		configPath = filepath.Join(home, ".config", constant.APP_NAME)
-	}
+	configDir := platform.ConfigsDir()
 
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
-	v.AddConfigPath(configPath)
+	v.AddConfigPath(configDir)
 	v.SetEnvPrefix("FLASH_CLI")
 	v.AutomaticEnv()
 
@@ -62,7 +52,7 @@ func InitConfig() (*Config, error) {
 	}
 
 	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		if err := os.MkdirAll(configPath, 0o755); err != nil {
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			return nil, fmt.Errorf("creating config directory | %w", err)
 		}
 		if err := v.SafeWriteConfig(); err != nil {
@@ -77,13 +67,8 @@ func InitConfig() (*Config, error) {
 func setInitDefaults(v *viper.Viper) error {
 	v.SetDefault(KeyAddSeparator, "::")
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to find home directory for os | %w", err)
-	}
-	defaultConfigDir := filepath.Join(home, ".config", constant.APP_NAME)
-	v.SetDefault(KeyPathPluginsDir, filepath.Join(defaultConfigDir, "plugins"))
-	v.SetDefault(KeyPathLogsDir, filepath.Join(home, ".local", "state", constant.APP_NAME, "plugins.log"))
+	v.SetDefault(KeyPathPluginsDir, platform.PluginsDir())
+	v.SetDefault(KeyPathPluginsLogs, filepath.Join(platform.LogsDir(), "plugins.log"))
 
 	v.SetDefault(KeyDefaultEditor, "")
 	v.SetDefault(KeyDefaultFilterGroup, "")
